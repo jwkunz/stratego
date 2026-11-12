@@ -63,6 +63,17 @@ The Gradle build runs `npm run build` in `web/` and bundles `web/dist/index.html
 `-PskipWebBuild` to reuse an existing build. The app needs no network permission. The debug APK is
 signed with the standard debug key; a Play Store release would need your own signing key.
 
+## Continuous integration and releases
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request: it runs the web tests, builds
+the single-file `dist/index.html`, and builds the Android debug APK, uploading both as workflow artifacts.
+
+Pushing a version tag publishes a GitHub release with both files attached:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
 ## How to play
 
 Move one piece one square per turn (scouts may slide any distance in a straight line). Moving onto an
