@@ -9,12 +9,21 @@ offline Android app.
 - Full Stratego rules: 10×10 board with two lakes, 40 pieces per side, scouts that slide any distance,
   miners that defuse bombs, the spy that beats the marshal when it attacks, and the two-square rule.
 - Hand-place your army or randomize it, then battle the computer (Red vs. Blue).
-- Fair AI: it only uses information a human could see (revealed pieces and remaining unknown ranks).
+- Three difficulty levels, chosen in setup. All of them play fair, using only information a human could see
+  (revealed pieces and the ranks still unaccounted for):
+  - **Easy** plays carelessly and makes deliberate mistakes.
+  - **Medium** looks one move ahead using the odds of what each hidden piece is.
+  - **Hard** searches several moves ahead (alpha-beta with a capture extension), averaging over many random guesses
+    of what the hidden pieces are, within a time budget of about half a second per move.
 - **Expanded boards:** 12×12, 16×16 and 20×20, with the army scaled up to fill a deeper starting zone and
   a button to randomize the lakes (symmetric, and never blocking the board).
 - In-app **Help** tab describing every piece.
-- Bomb explosion effects (flash, shake, burst) and confetti when you capture the flag. These respect
-  the system "reduce motion" setting.
+- Combat animations, all of which respect the system "reduce motion" setting:
+  - a winning attacker **slashes** the weaker piece in two, and a failed attacker **shatters**;
+  - a **Spy takes the Marshal** under a red crosshair, and a defeated Spy is a silhouette that **cracks apart**;
+  - a Miner's defused **bomb dissolves** into dust, and a tripped bomb explodes with a screen flash;
+  - enemy pieces **shake** when the fog of war lifts from them;
+  - confetti when you capture the flag.
 
 ## Repository layout
 
@@ -42,7 +51,7 @@ Source overview:
 | File | Purpose |
 |------|---------|
 | `web/src/game.js` | Rules engine (pure functions): moves, combat, setup, lakes, win detection |
-| `web/src/ai.js` | Computer opponent |
+| `web/src/ai.js` | Computer opponent (easy / medium / hard) |
 | `web/src/main.js` | UI, setup phase, help tab, animations |
 | `web/src/style.css` | Styling and animations |
 | `web/test/` | Unit tests |
