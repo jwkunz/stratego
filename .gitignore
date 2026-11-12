@@ -1,0 +1,32 @@
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+*.iml
+
+# --- Web (Node / Vite) ---
+web/node_modules/
+web/dist/
+npm-debug.log*
+*.log
+.env
+.env.*
+
+# --- Android / Gradle ---
+Android/.gradle/
+Android/build/
+Android/app/build/
+Android/.cxx/
+Android/captures/
+Android/local.properties
+Android/**/generated/
+
+# Build outputs and signing material
+*.apk
+*.aab
+*.ap_
+*.dex
+*.keystore
+*.jks
