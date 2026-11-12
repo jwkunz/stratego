@@ -15,6 +15,9 @@ export const enemyOf = (p) => (p === 'red' ? 'blue' : 'red');
 /** Classic 10x10 lake squares. */
 export const isLake = (r, c) => (r === 4 || r === 5) && (c === 2 || c === 3 || c === 6 || c === 7);
 export const canMove = (rank) => rank >= SPY && rank <= MARSHAL;
+/** Points a piece is worth when lost: its rank (Spy 1 ... Marshal 10). Bombs and the flag are not scored. */
+export const pieceScore = (rank) => (canMove(rank) ? rank : 0);
+export const totalScore = (ranks) => ranks.reduce((sum, r) => sum + pieceScore(r), 0);
 /** Rows of a player's starting territory, back row first. */
 export const territory = (owner, n = SIZE) => {
   const d = depthFor(n);

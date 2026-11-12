@@ -18,6 +18,8 @@ offline Android app.
 - **Expanded boards:** 12×12, 16×16 and 20×20, with the army scaled up to fill a deeper starting zone and
   a button to randomize the lakes (symmetric, and never blocking the board).
 - In-app **Help** tab describing every piece.
+- **Losses report** that totals the points each side has lost (a piece is worth its rank, Spy 1 to Marshal 10; bombs
+  and the flag are not scored), and an eye marker on any piece, yours or the enemy's, whose identity is known.
 - Combat animations, all of which respect the system "reduce motion" setting:
   - a winning attacker **slashes** the weaker piece in two, and a failed attacker **shatters**;
   - a **Spy takes the Marshal** under a red crosshair, and a defeated Spy is a silhouette that **cracks apart**;

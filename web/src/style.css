@@ -38,7 +38,7 @@ main { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
 .piece .n { font-size: 15cqw; font-weight: 600; opacity: .85; margin-top: 3%; }
 .piece.hidden .r { opacity: .35; font-size: 34cqw; }
 .piece.hidden .n { display: none; }
-.piece.seen::after { content: "👁"; position: absolute; top: 1px; right: 3px; font-size: 14cqw; }
+.piece.seen::after { content: "👁"; position: absolute; top: 2px; right: 3px; font-size: 22cqw; line-height: 1; color: #fff; text-shadow: 0 0 3px rgba(0, 0, 0, .9); }
 .piece.mine { cursor: pointer; }
 .piece.sel { outline: 3px solid var(--accent); outline-offset: 1px; }
 #side { flex: 1; min-width: 250px; background: var(--panel); border-radius: 8px; padding: 14px; }
@@ -162,3 +162,4 @@ body, #board, button { touch-action: manipulation; -webkit-user-select: none; us
   10%, 80% { box-shadow: 0 0 0 3px #ffd54a, 0 0 14px 4px rgba(255, 213, 74, .8); }
 }
 @media (prefers-reduced-motion: reduce) { #fx { display: none; } .piece.shaking { animation: none; } }
+#side h2 .pts { float: right; color: var(--accent); text-transform: none; letter-spacing: 0; font-size: .85rem; }

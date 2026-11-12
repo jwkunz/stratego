@@ -1,5 +1,5 @@
 import './style.css';
-import { SIZES, NAMES, RANK_ORDER, FLAG, BOMB, SPY, MARSHAL, rowOf, colOf, territory, armyTotal, enemyOf,
+import { SIZES, NAMES, RANK_ORDER, FLAG, BOMB, SPY, MARSHAL, rowOf, colOf, territory, armyTotal, enemyOf, totalScore,
   createState, legalMoves, applyMove, randomSetup, makeConfig, randomLakes } from './game.js';
 import { pickMove, DIFFICULTIES } from './ai.js';
 
@@ -29,7 +29,7 @@ const placedCount = () => Object.keys(ui.placed).length;
 function pieceHTML(p, { showAll = false, extra = '', style = '' } = {}) {
   const mine = p.owner === 'red';
   const visible = mine || p.revealed || showAll;
-  const cls = ['piece', p.owner, visible ? '' : 'hidden', !mine && p.revealed && !showAll ? 'seen' : '', extra].join(' ');
+  const cls = ['piece', p.owner, visible ? '' : 'hidden', p.revealed && !showAll ? 'seen' : '', extra].join(' ');
   return `<div class="${cls}"${style ? ` style="${style}"` : ''}><span class="r">${visible ? label(p.rank) : '★'}</span><span class="n">${visible ? NAMES[p.rank] : ''}</span></div>`;
 }
 
@@ -112,8 +112,8 @@ function gameSide() {
   const s = ui.state;
   statusEl.textContent = ui.phase === 'over' ? (s.winner === 'red' ? 'You win!' : 'You lose.')
     : s.turn === 'red' ? 'Your turn (Red)' : 'Blue is thinking…';
-  return `<h2>Your losses</h2>${chips('red', s.dead.red)}
-    <h2>Enemy losses</h2>${chips('blue', s.dead.blue)}
+  return `<h2>Your losses <span class="pts">${totalScore(s.dead.red)} pts</span></h2>${chips('red', s.dead.red)}
+    <h2>Enemy losses <span class="pts">${totalScore(s.dead.blue)} pts</span></h2>${chips('blue', s.dead.blue)}
     <h2>Log</h2><ul id="log">${ui.log.map((l) => `<li>${l}</li>`).join('')}</ul>`;
 }
 
@@ -146,7 +146,8 @@ function helpSide() {
       <li>Two-square rule: a piece may not move back and forth between the same two squares more than 3 times in a row.</li>
       <li>Difficulty (chosen in setup): Easy plays carelessly and makes mistakes, Medium looks one move ahead using the odds of what each hidden piece is, and Hard searches several moves ahead while guessing at hidden pieces. Hard takes up to about half a second per move.</li>
       <li>Larger boards (12×12, 16×16, 20×20) have a deeper starting zone and a bigger army, in the same proportions as the classic 40 pieces. Lakes on those boards can be re-rolled during setup.</li>
-      <li>Enemy pieces are hidden (★) until they fight or a Scout moves more than one square. Revealed pieces are marked with an eye.</li>
+      <li>Enemy pieces are hidden (★) until they fight or a Scout moves more than one square. A revealed piece is marked with an eye, on your pieces too: it means the enemy has seen it and knows what it is.</li>
+      <li>Scoring: each lost piece is worth its rank (Spy 1 up to Marshal 10), and the Losses panel totals the points each side has lost. Bombs and the Flag are not scored.</li>
     </ul>
     <h2>Pieces (strongest first)</h2>${rows}`;
 }
