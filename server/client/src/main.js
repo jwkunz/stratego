@@ -3,10 +3,12 @@
 // board is shown rotated 180 degrees so everyone plays from the bottom of their own screen.
 import '../../../single/web/src/style.css';
 import './lobby.css';
+import { createEffects, reduceMotion } from '../../../single/web/src/effects.js';
 import { SIZES, NAMES, RANK_ORDER, FLAG, BOMB, SPY, territory, rowOf, randomSetup, totalScore } from '../../../single/web/src/game.js';
 
 const $ = (id) => document.getElementById(id);
 const boardEl = $('board'), sideEl = $('side'), statusEl = $('status'), leaveBtn = $('leave');
+const fx = createEffects({ boardEl, renderPiece: (color, rank) => pieceHTML({ color, rank }) });
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const label = (rank) => (rank === FLAG ? '🚩' : rank === BOMB ? '💣' : rank === SPY ? 'S' : String(rank));
 const store = {
@@ -24,6 +26,8 @@ let view = null; // the server's view of my game, or null when I'm in the lobby
 let log = [];
 let toast = '';
 let toastTimer = null;
+let lockUntil = 0; // clicks are ignored while a combat animation plays
+let shake = null; // {cell, start, dur}: an enemy piece whose fog of war just lifted
 let ui = freshUi();
 function freshUi() { return { placed: {}, tray: null, pick: null, sel: null, targets: [] }; }
 
@@ -44,6 +48,7 @@ function connect() {
 }
 
 function onMessage(m) {
+  let anim = null;
   switch (m.t) {
     case 'welcome':
       connected = true;
@@ -56,12 +61,15 @@ function onMessage(m) {
       break;
     case 'state': {
       const prev = view;
+      anim = m.event;
       view = m.view;
       if (!prev || prev.code !== view.code) log = [];
       if (view.phase === 'setup' && (!prev || prev.phase !== 'setup')) ui = freshUi();
       if (view.phase === 'setup' && view.mySetup) ui.placed = { ...view.mySetup };
       ui.sel = null; ui.targets = [];
       if (m.event) log.unshift(describe(m.event));
+      shake = null;
+      if (m.event && prev && prev.code === view.code) markReveal(m.event, prev);
       break;
     }
     case 'error':
@@ -70,6 +78,31 @@ function onMessage(m) {
       return;
   }
   render();
+  if (anim) playEffects(anim);
+}
+
+/** An enemy piece that just lost its fog of war shakes, after any fight animation on its square. */
+function markReveal(event, prev) {
+  if (reduceMotion()) return;
+  const now = view.board[event.to];
+  if (!now || now.o !== 'opp' || !now.v) return;
+  const was = event.type === 'move' ? prev.board[event.from]
+    : event.result === 'lose' ? prev.board[event.to] : prev.board[event.from];
+  if (was && was.v) return; // it was already face-up
+  shake = { cell: event.to, start: performance.now() + (event.type === 'attack' ? fx.duration() : 0), dur: 650 };
+}
+
+/** Combat, explosion and victory animations for the event that just happened. */
+function playEffects(event) {
+  if (event.type !== 'attack') return;
+  const dur = fx.duration();
+  lockUntil = performance.now() + dur;
+  const mineAtk = event.mine;
+  const atkColor = mineAtk ? view.you : oppColor(), defColor = mineAtk ? oppColor() : view.you;
+  const cell = mirror(event.to);
+  fx.playCombat({ cell, size: view.size, attacker: event.attacker, defender: event.defender, result: event.result, atkColor, defColor }, dur);
+  if (event.defender === BOMB && event.result === 'lose') fx.explode(cell, view.size);
+  if (view.phase === 'over' && view.result.reason === 'flag' && view.result.winner === 'me') fx.confetti();
 }
 
 function describe(e) {
@@ -86,10 +119,10 @@ function describe(e) {
 }
 
 // ---- drawing ---------------------------------------------------------------------------------
-function pieceHTML({ color, rank, seen = false, extra = '' }) {
+function pieceHTML({ color, rank, seen = false, extra = '', style = '' }) {
   const visible = rank !== null && rank !== undefined;
   const cls = ['piece', color, visible ? '' : 'hidden', seen ? 'seen' : '', extra].join(' ');
-  return `<div class="${cls}"><span class="r">${visible ? label(rank) : '★'}</span><span class="n">${visible ? NAMES[rank] : ''}</span></div>`;
+  return `<div class="${cls}"${style ? ` style="${style}"` : ''}><span class="r">${visible ? label(rank) : '★'}</span><span class="n">${visible ? NAMES[rank] : ''}</span></div>`;
 }
 
 const remaining = (rank) => view.army[rank] - Object.values(ui.placed).filter((r) => r === rank).length;
@@ -123,13 +156,19 @@ function renderBoard() {
       if (targets.has(i)) { cls.push('target'); if (p) cls.push('enemy'); }
       if (p) {
         const mine = p.o === 'me';
-        inner = pieceHTML({ color: mine ? view.you : oppColor(), rank: p.r, seen: p.v, extra: `${mine ? 'mine' : ''} ${ui.sel === i ? 'sel' : ''}` });
+        let shaking = '', style = '';
+        if (shake && shake.cell === i) {
+          const t = performance.now();
+          if (t < shake.start + shake.dur) { shaking = 'shaking'; style = `animation-delay:${((shake.start - t) / 1000).toFixed(3)}s`; } else shake = null;
+        }
+        inner = pieceHTML({ color: mine ? view.you : oppColor(), rank: p.r, seen: p.v, style, extra: `${mine ? 'mine' : ''} ${ui.sel === i ? 'sel' : ''} ${shaking}` });
       }
     }
     html += `<div class="${cls.join(' ')}" data-d="${d}">${inner}</div>`;
   }
   if (view.phase === 'over') html += overlayHTML();
   boardEl.innerHTML = html;
+  boardEl.appendChild(fx.layer); // effects survive board re-renders
 }
 
 function overlayHTML() {
@@ -257,7 +296,7 @@ function setupClick(i) {
 }
 
 function playClick(i) {
-  if (view.phase !== 'play' || view.turn !== 'me') return;
+  if (view.phase !== 'play' || view.turn !== 'me' || performance.now() < lockUntil) return;
   if (ui.targets.includes(i)) { send({ t: 'move', from: ui.sel, to: i }); ui.sel = null; ui.targets = []; return; }
   const p = view.board[i];
   if (p && p.o === 'me' && ui.sel !== i) {

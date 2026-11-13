@@ -35,6 +35,9 @@ If other devices cannot connect, the host's firewall is the usual cause. On Ubun
 - **Fair play:** the server is authoritative. It uses the same rules engine as the single-player game
   (`single/web/src/game.js`) to validate every move, and each player is only ever sent the enemy pieces they have
   legitimately seen. Sides are assigned by coin flip; after a game, a rematch swaps them.
+- **Animations:** the same combat effects as the single-player game (slash, shatter, spy crosshair, cracking spy,
+  dissolving bomb, bomb explosion, fog-of-war shake, confetti on a captured flag). They live in
+  `single/web/src/effects.js`, shared by both clients, and respect the system "reduce motion" setting.
 - **Setup:** both players arrange their army at the same time and press Ready; the game starts when both have.
 - **Resilience:** a dropped player can reopen the page and resume (the tab remembers a session token). They have
   two minutes before the game is forfeited. Resign, leave and rematch are all supported.
@@ -51,8 +54,8 @@ server/
   test/            node:test suites (real WebSocket clients against a real server)
 ```
 
-The client reuses the single-player stylesheet and rules module from `../single/web/src`, so the board looks and
-plays the same.
+The client reuses the single-player stylesheet, rules module and animation effects from `../single/web/src`, so the
+board looks and plays the same.
 
 ## Tests
 
