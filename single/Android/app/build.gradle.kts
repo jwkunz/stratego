@@ -20,6 +20,10 @@ android {
         }
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -43,3 +47,7 @@ val copyWebApp by tasks.registering(Copy::class) {
 }
 
 tasks.named("preBuild") { dependsOn(copyWebApp) }
+
+dependencies {
+    testImplementation("junit:junit:4.13.2")
+}
