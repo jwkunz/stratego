@@ -38,5 +38,11 @@ The host's own screen talks to the game server in memory, so it needs no network
   only visit the one private-network address you chose. The permissions are INTERNET, network/Wi-Fi state, multicast
   (discovery), foreground service and notifications, all used only for hosting and joining. Plain HTTP is allowed
   because LAN hosts have no certificates.
+- **Measured on a Samsung Galaxy S21 (Android 15):** hosting a Hextic game with two computer players, a round (my move, then both
+  computers) took about 1.5 s with the app in front, 1.8 s with the app in the background and 2.1 s with the screen off,
+  and the game kept going throughout. These were 30-second tests; much longer background periods are untested, so
+  keep the app open for long sessions.
+- **Debugging:** debug builds enable WebView remote debugging, so `chrome://inspect` (or `adb forward` to the
+  `webview_devtools_remote_<pid>` socket) shows the pages inside the app.
 - **Limits:** both devices need the same Wi-Fi. Guest networks that isolate devices block joining; networks that block
   multicast block discovery (typing the address still works). The host phone listens on the LAN like the PC server does.

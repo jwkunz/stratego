@@ -48,6 +48,8 @@ public class MainActivity extends Activity {
             return insets;
         });
 
+        // debug builds only: lets a developer inspect the WebViews from a computer (chrome://inspect)
+        if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) WebView.setWebContentsDebuggingEnabled(true);
         discovery = new Discovery(this);
         web = newWebView();
         host = new NativeHostBridge(this, web, discovery);
@@ -113,6 +115,7 @@ public class MainActivity extends Activity {
             if (url == null) return false;
             runOnUiThread(() -> {
                 remoteBase = url;
+                remote.onResume(); // it was paused with the activity while hidden
                 remote.loadUrl(url);
                 remote.setVisibility(View.VISIBLE);
                 web.setVisibility(View.GONE);
@@ -148,6 +151,7 @@ public class MainActivity extends Activity {
         runOnUiThread(() -> {
             remote.loadUrl("about:blank");
             remote.setVisibility(View.GONE);
+            remote.onPause();
             web.setVisibility(View.VISIBLE);
             web.onResume();
             remoteBase = null;
