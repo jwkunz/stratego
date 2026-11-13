@@ -443,5 +443,7 @@ sideEl.addEventListener('change', (e) => {
 $('new').addEventListener('click', () => { clearTimeout(ui.timer); reset(); render(); });
 
 $('ver').textContent = `v${__APP_VERSION__}`;
+// inside the Android app there is a menu for hosting and joining games on the local network
+if (window.StrategoApp) $('lan').hidden = false;
 reset();
 render();

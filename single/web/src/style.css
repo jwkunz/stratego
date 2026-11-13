@@ -241,3 +241,6 @@ body, #board, button { touch-action: manipulation; -webkit-user-select: none; us
 #overlayhost { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
 #overlayhost .overlay { pointer-events: auto; }
 .teamtag { flex: none; font-size: .7rem; font-weight: 700; min-width: 1.6em; text-align: center; padding: 1px 6px; border-radius: 10px; background: #4a5565; color: #fff; }
+.btnlink { background: #39424f; color: var(--text); border-radius: 6px; padding: 8px 14px; text-decoration: none; }
+.btnlink:hover { background: #4a5565; }
+.btnlink[hidden] { display: none; }

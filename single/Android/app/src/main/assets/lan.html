@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play on LAN</title>
+<style>
+  :root { --bg: #1b1f27; --panel: #252b36; --text: #e8e6e1; --muted: #9aa3b2; --accent: #e0b84c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  main { max-width: 640px; margin: 0 auto; padding: 14px 16px 28px; }
+  h1 { font-size: 1.4rem; letter-spacing: .15em; margin: 6px 0 4px; }
+  h2 { font-size: .95rem; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  p { margin: 0 0 12px; color: var(--muted); font-size: .92rem; line-height: 1.45; }
+  section { background: var(--panel); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+  button, .btn { background: #39424f; color: var(--text); border: 0; border-radius: 6px; padding: 10px 16px; font: inherit; cursor: pointer; text-decoration: none; display: inline-block; }
+  button.primary { background: var(--accent); color: #222; font-weight: 700; }
+  input { background: #1b1f27; color: var(--text); border: 1px solid #39424f; border-radius: 6px; padding: 10px; font: inherit; width: 100%; }
+  input:focus { outline: 2px solid var(--accent); }
+  .row { display: flex; gap: 8px; margin-bottom: 8px; }
+  ul { list-style: none; margin: 0 0 12px; padding: 0; }
+  li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid #333b48; }
+  li span { flex: 1; min-width: 0; }
+  li small { display: block; color: var(--muted); }
+  #error { color: #ffb4a8; min-height: 1.2em; margin: 6px 0 0; }
+  .empty { color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>PLAY ON LAN</h1>
+  <p>Play with people on the same Wi-Fi. One phone hosts; everyone else joins from this app or from any web browser.</p>
+
+  <section>
+    <h2>Host a game</h2>
+    <p>This phone becomes the game server. Keep the app open and the screen on while others play. Computer players can fill empty seats.</p>
+    <button class="primary" id="host">Host a game on this phone</button>
+  </section>
+
+  <section>
+    <h2>Join a game</h2>
+    <ul id="found"><li class="empty" id="searching">Looking for games on this network…</li></ul>
+    <div class="row"><input id="addr" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Address, e.g. 192.168.1.20:8080" aria-label="Address of the host"></div>
+    <button id="join">Join this address</button>
+    <div id="error" role="alert"></div>
+  </section>
+
+  <a class="btn" href="index.html">Back to single player</a>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const app = window.StrategoApp;
+  const found = new Map();
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const store = {
+    get: (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
+  };
+  $('addr').value = store.get('stratego.lastHost');
+
+  function show() {
+    const list = $('found');
+    if (!found.size) { list.innerHTML = '<li class="empty" id="searching">No games found yet. If your network blocks discovery, type the address below.</li>'; return; }
+    list.innerHTML = [...found.values()].map((g) =>
+      `<li><span>${esc(g.name)}<small>${esc(g.host)}:${g.port}</small></span><button class="primary" data-addr="${esc(g.host)}:${g.port}">Join</button></li>`).join('');
+  }
+
+  function join(address) {
+    $('error').textContent = '';
+    if (!app) { $('error').textContent = 'Joining works inside the Stratego app.'; return; }
+    if (app.openRemote(address)) store.set('stratego.lastHost', address);
+    else $('error').textContent = 'That address is not allowed. Use the private-network address shown on the host phone, like 192.168.1.20:8080.';
+  }
+
+  window.StrategoLan = {
+    onFound(g) { found.set(g.name, g); show(); },
+    onLost(name) { found.delete(name); show(); },
+    onError(message) { $('error').textContent = message; },
+  };
+
+  $('host').addEventListener('click', () => { if (app) app.stopDiscovery(); location.href = 'lan-host.html'; });
+  $('join').addEventListener('click', () => join($('addr').value));
+  $('addr').addEventListener('keydown', (e) => { if (e.key === 'Enter') join($('addr').value); });
+  $('found').addEventListener('click', (e) => { const b = e.target.closest('button[data-addr]'); if (b) join(b.dataset.addr); });
+  window.addEventListener('pagehide', () => { if (app) app.stopDiscovery(); });
+  if (app) { app.startDiscovery(); setTimeout(() => { if (!found.size) show(); }, 4000); } else show();
+</script>
+</body>
+</html>

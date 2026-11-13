@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Games on a local network are served over plain HTTP (there is no certificate for 192.168.x.x). Cleartext traffic is
+  allowed for that reason only: the joining WebView can visit just the private-network address the user typed or
+  picked (see UrlGuard), and the bundled-pages WebView cannot navigate away from the app's own files at all.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
