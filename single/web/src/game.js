@@ -1,4 +1,8 @@
 // Core Stratego rules. Pure functions, no DOM.
+// The board is a topology (see topology.js: square grid or hexagon star) and any number of players (2-6) can take part,
+// alone or in teams. The classic two-player square game (players 'red' and 'blue') is just one configuration.
+import { squareTopology, hexTopology, applyLakes, randomHexTopology } from './topology.js';
+
 export const SIZE = 10;
 export const FLAG = 0, SPY = 1, SCOUT = 2, MINER = 3, MARSHAL = 10, BOMB = 11;
 export const INITIAL = { 0: 1, 1: 1, 2: 8, 3: 5, 4: 4, 5: 4, 6: 4, 7: 3, 8: 2, 9: 1, 10: 1, 11: 6 };
@@ -26,10 +30,8 @@ export const territory = (owner, n = SIZE) => {
   return owner === 'red' ? Array.from({ length: d }, (_, k) => n - 1 - k) : Array.from({ length: d }, (_, k) => k);
 };
 
-/** Army composition for a board size: the classic mix scaled to fill the starting zone. */
-export function armyFor(n) {
-  if (n === SIZE) return { ...INITIAL };
-  const total = n * depthFor(n);
+/** The classic piece mix scaled to `total` pieces (one flag, every other kind at least once). */
+function scaledArmy(total) {
   const k = total / 40;
   const army = {};
   for (const r of Object.keys(INITIAL)) army[r] = Math.max(1, Math.round(INITIAL[r] * k));
@@ -37,6 +39,14 @@ export function armyFor(n) {
   army[SCOUT] += total - Object.values(army).reduce((a, b) => a + b, 0);
   return army;
 }
+
+/** Army composition for a square board size: the classic mix scaled to fill the starting zone. */
+export function armyFor(n) {
+  if (n === SIZE) return { ...INITIAL };
+  return scaledArmy(n * depthFor(n));
+}
+/** Army for a hex board whose camps have side `a` (a(a+1)/2 pieces, filling the camp exactly). */
+export const hexArmy = (a) => scaledArmy((a * (a + 1)) / 2);
 export const armyTotal = (army) => Object.values(army).reduce((a, b) => a + b, 0);
 
 const shuffle = (a) => {
@@ -89,10 +99,47 @@ export function randomLakes(n) {
 
 export const classicLakes = () => Array.from({ length: SIZE * SIZE }, (_, i) => isLake(rowOf(i), colOf(i)));
 
-/** A board configuration: size, lake map and army composition. */
-export function makeConfig(size = SIZE, lakes = null) {
-  return { size, lakes: lakes || (size === SIZE ? classicLakes() : randomLakes(size)), army: armyFor(size) };
+/** Team labels per player: an array (by seat) or object; players without a team are their own team. */
+function normalizeTeams(players, teams) {
+  const out = {};
+  players.forEach((p, seat) => {
+    const t = Array.isArray(teams) ? teams[seat] : teams && teams[p];
+    out[p] = t ? String(t) : p;
+  });
+  return out;
 }
+
+/** A square board configuration (always two players, red and blue): size, lake map, army and topology. */
+export function makeConfig(size = SIZE, lakes = null) {
+  const lk = lakes || (size === SIZE ? classicLakes() : randomLakes(size));
+  const players = ['red', 'blue'];
+  return {
+    kind: 'square', size, lakes: lk, army: armyFor(size), topo: squareTopology(size, lk, depthFor(size)),
+    players, teams: normalizeTeams(players, null),
+  };
+}
+
+/**
+ * A hexagon-star board configuration.
+ * @param {object} o
+ * @param {number} o.a        camp side / arena radius (6, 7 or 8)
+ * @param {number} o.players  2..6; seats are red, blue, green, yellow, purple, orange in clockwise camp order
+ * @param {Array|object} [o.teams]  team label per seat (array) or per player (object); omitted = everyone for themselves
+ * @param {number[]} [o.lakes]      lake cell indices; omitted = freshly rolled symmetric lakes
+ */
+export function makeHexConfig({ a = 7, players = 3, teams = null, lakes = null } = {}) {
+  const topo = lakes ? applyLakes(hexTopology({ a, players }), lakes) : randomHexTopology(a, players);
+  return {
+    kind: 'hex', a, size: null, lakes: topo.lakes, army: hexArmy(a), topo, players: topo.ids,
+    teams: normalizeTeams(topo.ids, teams),
+  };
+}
+
+/** The same hex board with new random lakes. */
+export const rerollHexLakes = (cfg) => makeHexConfig({ a: cfg.a, players: cfg.players.length, teams: cfg.teams });
+
+/** Squares/cells of a player's starting zone, back to front. */
+export const zoneOf = (cfg, player) => cfg.topo.zones[player];
 
 /** Returns {index: rank} for a full setup, loosely sensible. */
 export function randomSetup(owner, n = SIZE) {
@@ -121,38 +168,82 @@ export function randomSetup(owner, n = SIZE) {
   return placed;
 }
 
+/** A loosely sensible full setup for a hex camp: flag in the back rows, bombs around it and behind the front. */
+function randomSetupZone(topo, player, army) {
+  const rows = topo.zoneRows[player];
+  const rowOfCell = new Map();
+  rows.forEach((row, j) => row.forEach((c) => rowOfCell.set(c, j)));
+  const free = new Set(rows.flat());
+  const placed = {};
+  const put = (c, rank) => { placed[c] = rank; free.delete(c); };
+  const counts = { ...army };
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  const flag = pick(rows.slice(0, 3).flat());
+  put(flag, FLAG); counts[FLAG]--;
+  for (let d = 0; d < topo.D; d++) {
+    const c = topo.adj[flag * topo.D + d];
+    if (c >= 0 && free.has(c) && rowOfCell.get(c) >= rowOfCell.get(flag) && counts[BOMB] > 0 && Math.random() < 0.85) { put(c, BOMB); counts[BOMB]--; }
+  }
+  const back = shuffle(rows.slice(0, Math.ceil(rows.length * 0.6)).flat().filter((c) => free.has(c)));
+  while (counts[BOMB] > 0 && back.length) { put(back.pop(), BOMB); counts[BOMB]--; }
+
+  const rest = [];
+  for (const [rank, k] of Object.entries(counts)) for (let j = 0; j < k; j++) rest.push(Number(rank));
+  shuffle(rest);
+  for (const c of shuffle([...free])) put(c, rest.pop());
+  return placed;
+}
+
+/** A random full setup for `player` on any configuration. */
+export function randomSetupFor(cfg, player) {
+  return cfg.topo.kind === 'square' ? randomSetup(player, cfg.size) : randomSetupZone(cfg.topo, player, cfg.army);
+}
+
 let nextId = 1;
-export function createState(redSetup, blueSetup, cfg = makeConfig(SIZE)) {
-  const board = Array(cfg.size * cfg.size).fill(null);
-  for (const [owner, setup] of [['red', redSetup], ['blue', blueSetup]]) {
-    for (const [i, rank] of Object.entries(setup)) {
+/**
+ * Starts a game. `setups` maps each player to {cell: rank}; the first player in `cfg.players` moves first.
+ * State fields: topo, players, teams, alive, board, turn, winner/winners/winTeam/winReason, shuttle, dead, lastMove;
+ * for compatibility with the square-only code, `size` (square boards) and `lakes` are kept too.
+ */
+export function createStateN(setups, cfg) {
+  const board = Array(cfg.topo.cells).fill(null);
+  for (const owner of cfg.players) {
+    for (const [i, rank] of Object.entries(setups[owner] || {})) {
       board[i] = { id: nextId++, owner, rank, revealed: false, moved: false };
     }
   }
+  const each = (make) => Object.fromEntries(cfg.players.map((p) => [p, make()]));
   return {
-    size: cfg.size, lakes: cfg.lakes, army: cfg.army,
-    board, turn: 'red', winner: null, winReason: null,
-    shuttle: { red: null, blue: null },
-    dead: { red: [], blue: [] },
+    kind: cfg.kind, topo: cfg.topo, size: cfg.size, lakes: cfg.lakes, army: cfg.army,
+    players: cfg.players, teams: cfg.teams, alive: each(() => true), outReason: {},
+    board, turn: cfg.players[0],
+    winner: null, winners: [], winTeam: null, winReason: null,
+    shuttle: each(() => null), dead: each(() => []),
     lastMove: null,
   };
 }
 
-/** Squares a piece at `from` can reach. Ignores the repetition rule. */
+/** The classic two-player start (red and blue). */
+export function createState(redSetup, blueSetup, cfg = makeConfig(SIZE)) {
+  return createStateN({ red: redSetup, blue: blueSetup }, cfg);
+}
+
+/** Cells a piece at `from` can reach (scouts slide any distance in a straight line). Ignores the repetition rule. */
 export function reachable(state, from) {
   const p = state.board[from];
   if (!p || !canMove(p.rank)) return [];
+  const { D, nbr } = state.topo;
+  const team = state.teams[p.owner];
   const out = [];
-  const n = state.size;
-  const r0 = rowOf(from, n), c0 = colOf(from, n);
-  for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    let r = r0 + dr, c = c0 + dc;
-    while (r >= 0 && r < n && c >= 0 && c < n && !state.lakes[idx(r, c, n)]) {
-      const t = state.board[idx(r, c, n)];
-      if (t) { if (t.owner !== p.owner) out.push(idx(r, c, n)); break; }
-      out.push(idx(r, c, n));
+  for (let d = 0; d < D; d++) {
+    let c = nbr[from * D + d];
+    while (c >= 0) {
+      const t = state.board[c];
+      if (t) { if (state.teams[t.owner] !== team) out.push(c); break; } // enemies can be attacked, allies block
+      out.push(c);
       if (p.rank !== SCOUT) break;
-      r += dr; c += dc;
+      c = nbr[c * D + d];
     }
   }
   return out;
@@ -175,6 +266,16 @@ export function legalMoves(state, owner, fromOnly = null) {
   return moves;
 }
 
+/** Cheaper than legalMoves(...).length > 0: stops at the first move found. */
+export function hasLegalMove(state, owner) {
+  for (let i = 0; i < state.board.length; i++) {
+    const p = state.board[i];
+    if (!p || p.owner !== owner) continue;
+    for (const to of reachable(state, i)) if (!repeats(state, owner, i, to)) return true;
+  }
+  return false;
+}
+
 /** Outcome from the attacker's view: 'win' | 'lose' | 'tie'. */
 export function resolve(a, d) {
   if (d === FLAG) return 'win';
@@ -183,18 +284,35 @@ export function resolve(a, d) {
   return a > d ? 'win' : a < d ? 'lose' : 'tie';
 }
 
-/** Applies a (legal) move. Returns {state, event}; the input state is not mutated. */
+/** The next player after `player` (in seat order) who is still in the game. */
+export function nextAlive(state, player) {
+  const { players } = state;
+  const at = players.indexOf(player);
+  for (let k = 1; k <= players.length; k++) {
+    const p = players[(at + k) % players.length];
+    if (state.alive[p]) return p;
+  }
+  return player;
+}
+
+export const sameTeam = (state, a, b) => state.teams[a] === state.teams[b];
+
+/**
+ * Applies a (legal) move. Returns {state, event}; the input state is not mutated.
+ * A player is eliminated when their flag is captured, or when they have no legal move on their turn; their pieces
+ * leave the board (unless that ends the game, so the final position can still be shown). The game ends when only one
+ * team has players left. `event.eliminated` lists everyone knocked out by this move.
+ */
 export function applyMove(state, move) {
   const board = state.board.slice();
   const mover = board[move.from];
   const owner = mover.owner;
   const target = board[move.to];
-  const n = state.size;
-  const dist = Math.abs(rowOf(move.to, n) - rowOf(move.from, n)) + Math.abs(colOf(move.to, n) - colOf(move.from, n));
-  const dead = { red: state.dead.red.slice(), blue: state.dead.blue.slice() };
+  const dist = state.topo.dist(move.from, move.to);
+  const dead = { ...state.dead };
   const att = { ...mover, moved: true, revealed: mover.revealed || dist > 1 };
-  const event = { type: 'move', owner, from: move.from, to: move.to, attacker: mover.rank, dist };
-  let winner = null, winReason = null;
+  const event = { type: 'move', owner, from: move.from, to: move.to, attacker: mover.rank, dist, eliminated: [] };
+  const pending = [];
   board[move.from] = null;
 
   if (!target) {
@@ -203,14 +321,14 @@ export function applyMove(state, move) {
     att.revealed = true;
     const def = { ...target, revealed: true };
     const result = resolve(att.rank, def.rank);
-    Object.assign(event, { type: 'attack', defender: def.rank, result });
+    Object.assign(event, { type: 'attack', defender: def.rank, defenderOwner: def.owner, result });
     if (result === 'win') {
-      board[move.to] = att; dead[def.owner].push(def.rank);
-      if (def.rank === FLAG) { winner = owner; winReason = 'flag'; }
+      board[move.to] = att; dead[def.owner] = [...dead[def.owner], def.rank];
+      if (def.rank === FLAG) pending.push({ player: def.owner, reason: 'flag' });
     } else if (result === 'lose') {
-      board[move.to] = def; dead[owner].push(att.rank);
+      board[move.to] = def; dead[owner] = [...dead[owner], att.rank];
     } else {
-      board[move.to] = null; dead[owner].push(att.rank); dead[def.owner].push(def.rank);
+      board[move.to] = null; dead[owner] = [...dead[owner], att.rank]; dead[def.owner] = [...dead[def.owner], def.rank];
     }
   }
 
@@ -221,9 +339,36 @@ export function applyMove(state, move) {
       ? { from: move.from, to: move.to, count: prev.count + 1 }
       : { from: move.from, to: move.to, count: 1 };
 
-  const next = { ...state, board, dead, shuttle, turn: enemyOf(owner), winner, winReason, lastMove: move };
-  if (!winner && legalMoves(next, next.turn).length === 0) {
-    next.winner = owner; next.winReason = 'blocked';
+  const next = { ...state, board, dead, shuttle, lastMove: move, alive: { ...state.alive }, outReason: { ...state.outReason } };
+  let lastReason = null;
+  const eliminate = (player, reason) => {
+    next.alive[player] = false; next.outReason[player] = reason; lastReason = reason;
+    event.eliminated.push({ player, reason });
+  };
+  const aliveTeams = () => new Set(next.players.filter((p) => next.alive[p]).map((p) => next.teams[p]));
+  const purge = (player) => { for (let i = 0; i < board.length; i++) if (board[i] && board[i].owner === player) board[i] = null; };
+
+  for (const e of pending) eliminate(e.player, e.reason);
+  let over = aliveTeams().size <= 1;
+  if (!over) for (const e of pending) purge(e.player);
+
+  // pass the turn to the next player who can move; players with no legal move are out
+  let current = owner;
+  while (!over) {
+    current = nextAlive(next, current);
+    if (hasLegalMove(next, current)) { next.turn = current; break; }
+    eliminate(current, 'blocked');
+    over = aliveTeams().size <= 1;
+    if (!over) purge(current);
+  }
+
+  if (over) {
+    const [team] = aliveTeams();
+    next.winTeam = team;
+    next.winners = next.players.filter((p) => next.teams[p] === team);
+    next.winner = next.players.find((p) => next.alive[p] && next.teams[p] === team);
+    next.winReason = lastReason;
+    next.turn = next.players[(next.players.indexOf(owner) + 1) % next.players.length];
   }
   return { state: next, event };
 }
