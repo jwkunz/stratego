@@ -103,7 +103,8 @@ empty seats): other players just open a web page. Quick start:
 server/run.sh          # installs, builds if needed and starts it (PORT=9000 server/run.sh to change the port)
 ```
 
-or `cd server && npm install && npm start`. The Android app can host too, with no PC at all.
+or `cd server && npm install && npm start`. The server also announces itself on the network, so the Android app's Join
+screen finds it. The Android app can host too, with no PC at all.
 
 See [server/README.md](server/README.md) for details.
 

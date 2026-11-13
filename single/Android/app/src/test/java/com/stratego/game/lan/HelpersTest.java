@@ -52,6 +52,14 @@ public class HelpersTest {
         assertFalse(UrlGuard.sameServer(null, base));
     }
 
+    @Test public void discoveredGamesPreferTheHostsOwnAddressHint() {
+        assertEquals("the hint wins over a Docker bridge address the resolver picked", "172.20.10.5", UrlGuard.pickHost("172.17.0.1", "172.20.10.5"));
+        assertEquals("no hint: use what was resolved", "192.168.1.20", UrlGuard.pickHost("192.168.1.20", null));
+        assertEquals("a bad hint is ignored", "192.168.1.20", UrlGuard.pickHost("192.168.1.20", "8.8.8.8"));
+        assertEquals("a public resolved address is never offered", null, UrlGuard.pickHost("8.8.8.8", "not an address"));
+        assertEquals(null, UrlGuard.pickHost(null, null));
+    }
+
     @Test public void onlyReachablePrivateIpv4AddressesAreOffered() throws Exception {
         assertTrue(LanAddresses.isUsable(InetAddress.getByName("192.168.1.20")));
         assertTrue(LanAddresses.isUsable(InetAddress.getByName("172.20.10.1")));

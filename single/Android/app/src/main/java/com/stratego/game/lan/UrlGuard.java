@@ -43,6 +43,16 @@ public final class UrlGuard {
         }
     }
 
+    /**
+     * Which address to show for a discovered game: the host's own `addr` hint (its best LAN address; a PC may also have
+     * container or VM addresses that the resolver could pick) if it is a private IPv4 address, else what the network
+     * resolver found, else nothing.
+     */
+    public static String pickHost(String resolved, String advertised) {
+        if (isPrivateIpv4(advertised)) return advertised;
+        return isPrivateIpv4(resolved) ? resolved : null;
+    }
+
     /** True when a page URL stays on the server the user chose (same scheme, host and port). */
     public static boolean sameServer(String allowedBase, String url) {
         if (allowedBase == null || url == null) return false;

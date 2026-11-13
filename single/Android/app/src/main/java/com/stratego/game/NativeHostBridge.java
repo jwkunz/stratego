@@ -55,8 +55,8 @@ final class NativeHostBridge {
             }
             server = s;
             this.port = actual;
-            discovery.register("Stratego on " + Build.MODEL, actual);
             List<String> addresses = LanAddresses.list();
+            discovery.register("Stratego on " + Build.MODEL, actual, addresses.isEmpty() ? null : addresses.get(0));
             String first = addresses.isEmpty() ? "" : "http://" + addresses.get(0) + ":" + actual;
             HostService.onStopRequested = () -> main.post(this::stopFromNotification);
             main.post(() -> {

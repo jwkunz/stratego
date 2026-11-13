@@ -53,6 +53,13 @@ If other devices cannot connect, the host's firewall is the usual cause. On Ubun
   (`single/web/src/{scoreboard,effects}.js`, `zoom.js`, `boardview.js`), respecting "reduce motion".
 - **Setup:** everyone arranges their army at the same time and presses Ready; the game starts when all are ready.
 
+## Finding the server from the Android app
+
+The server advertises itself on the local network as `_stratego._tcp` (mDNS / DNS-SD, using the small
+`bonjour-service` package), so the Stratego Android app's Join screen lists it and a tap joins. The advertisement
+carries the machine's Wi-Fi/LAN address (container and VM bridge addresses are left out). Networks that block
+multicast just show nothing: the address printed at startup always works. Set `MDNS=0` to turn advertising off.
+
 ## Hosting from the Android app
 
 The same game server also runs inside the Android app (`single/Android`), so a phone can host with no PC: `src/lobby.js`

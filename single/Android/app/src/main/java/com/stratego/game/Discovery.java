@@ -3,6 +3,7 @@ package com.stratego.game;
 import android.content.Context;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
+import com.stratego.game.lan.UrlGuard;
 import java.net.Inet4Address;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -32,13 +33,14 @@ final class Discovery {
     }
 
     // ---- advertising (the host) -------------------------------------------------------------------------------
-    synchronized void register(String name, int port) {
+    synchronized void register(String name, int port, String bestAddress) {
         unregister();
         NsdServiceInfo info = new NsdServiceInfo();
         info.setServiceName(name);
         info.setServiceType(TYPE);
         info.setPort(port);
         info.setAttribute("app", "stratego");
+        if (bestAddress != null && !bestAddress.isEmpty()) info.setAttribute("addr", bestAddress);
         ownName = name;
         registration = new NsdManager.RegistrationListener() {
             @Override public void onServiceRegistered(NsdServiceInfo i) { synchronized (Discovery.this) { ownName = i.getServiceName(); } }
@@ -99,7 +101,10 @@ final class Discovery {
                 @Override public void onResolveFailed(NsdServiceInfo info, int code) { done(); }
 
                 @Override public void onServiceResolved(NsdServiceInfo info) {
-                    if (info.getHost() instanceof Inet4Address) cb.found(info.getServiceName(), info.getHost().getHostAddress(), info.getPort());
+                    String resolved = info.getHost() instanceof Inet4Address ? info.getHost().getHostAddress() : null;
+                    byte[] hint = info.getAttributes() == null ? null : info.getAttributes().get("addr");
+                    String host = UrlGuard.pickHost(resolved, hint == null ? null : new String(hint, java.nio.charset.StandardCharsets.UTF_8));
+                    if (host != null) cb.found(info.getServiceName(), host, info.getPort());
                     done();
                 }
 
