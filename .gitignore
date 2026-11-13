@@ -7,21 +7,25 @@ Thumbs.db
 *.iml
 
 # --- Web (Node / Vite) ---
-web/node_modules/
-web/dist/
+single/web/node_modules/
+single/web/dist/
 npm-debug.log*
 *.log
 .env
 .env.*
 
+# --- Server (multiplayer) ---
+server/node_modules/
+server/public/
+
 # --- Android / Gradle ---
-Android/.gradle/
-Android/build/
-Android/app/build/
-Android/.cxx/
-Android/captures/
-Android/local.properties
-Android/**/generated/
+single/Android/.gradle/
+single/Android/build/
+single/Android/app/build/
+single/Android/.cxx/
+single/Android/captures/
+single/Android/local.properties
+single/Android/**/generated/
 
 # Build outputs and signing material
 *.apk

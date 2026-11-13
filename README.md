@@ -30,16 +30,17 @@ offline Android app.
 ## Repository layout
 
 ```
-web/       The game: vanilla JS + Vite. `npm run build` emits one minified dist/index.html
-Android/   Android Studio project: a WebView wrapper that bundles the built web app
+single/web/       Single-player game: vanilla JS + Vite. `npm run build` emits one minified dist/index.html
+single/Android/   Android Studio project: a WebView wrapper that bundles the built web app
+server/           LAN multiplayer server (Node + WebSockets) and its browser client
 ```
 
-## Web app
+## Web app (single player)
 
 Requires Node.js 18+.
 
 ```bash
-cd web
+cd single/web
 npm install
 npm run dev      # local dev server with hot reload
 npm test         # rules engine / AI tests (node:test)
@@ -52,31 +53,41 @@ Source overview:
 
 | File | Purpose |
 |------|---------|
-| `web/src/game.js` | Rules engine (pure functions): moves, combat, setup, lakes, win detection |
-| `web/src/ai.js` | Computer opponent (easy / medium / hard) |
-| `web/src/main.js` | UI, setup phase, help tab, animations |
-| `web/src/style.css` | Styling and animations |
-| `web/test/` | Unit tests |
+| `single/web/src/game.js` | Rules engine (pure functions): moves, combat, setup, lakes, win detection |
+| `single/web/src/ai.js` | Computer opponent (easy / medium / hard) |
+| `single/web/src/main.js` | UI, setup phase, help tab, animations |
+| `single/web/src/style.css` | Styling and animations |
+| `single/web/test/` | Unit tests |
 
-## Android app
+## Android app (single player)
 
 Requires JDK 17 and the Android SDK (platform 35, build-tools 34). Open `Android/` in Android Studio,
 or build from a shell:
 
 ```bash
-cd Android
+cd single/Android
 echo "sdk.dir=$HOME/Android/Sdk" > local.properties   # Android Studio creates this for you
 ./gradlew :app:assembleDebug                           # builds the web app, then the APK
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The Gradle build runs `npm run build` in `web/` and bundles `web/dist/index.html` as an asset; pass
+The Gradle build runs `npm run build` in `single/web/` and bundles `single/web/dist/index.html` as an asset; pass
 `-PskipWebBuild` to reuse an existing build. The app needs no network permission. The debug APK is
 signed with the standard debug key; a Play Store release would need your own signing key.
 
+## Multiplayer over your LAN
+
+`server/` hosts head-to-head games from this machine: other players just open a web page. Quick start:
+
+```bash
+cd server && npm install && npm start
+```
+
+See [server/README.md](server/README.md) for details.
+
 ## Continuous integration and releases
 
-GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request: it runs the web tests, builds
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request: it runs the web and server tests, builds
 the single-file `dist/index.html`, and builds the Android debug APK, uploading both as workflow artifacts.
 
 Pushing a version tag publishes a GitHub release with both files attached:

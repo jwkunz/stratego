@@ -1,0 +1,25 @@
+{
+  "name": "stratego-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LAN multiplayer server for Stratego",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "start": "npm run build && node src/index.js",
+    "serve": "node src/index.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}
