@@ -67,8 +67,8 @@ export function createEffects({ boardEl, renderPiece }) {
    */
   function playCombat(info, dur) {
     if (!dur) return;
-    const { cell, size: n, attacker, defender, result, atkColor, defColor } = info;
-    const u = 100 / n;
+    const { cell, size: n, rect, attacker, defender, result, atkColor, defColor } = info;
+    const box = rect || { left: (cell % n) * (100 / n), top: Math.floor(cell / n) * (100 / n), w: 100 / n, h: 100 / n };
     const defDies = result !== 'lose', atkDies = result !== 'win', tie = defDies && atkDies;
     const defKind = defender === SPY ? 'crack' : attacker === SPY && defender === MARSHAL ? 'crosshair' : defender === BOMB ? 'dissolve' : 'slash';
     const atkKind = attacker === SPY ? 'crack' : 'shatter';
@@ -78,15 +78,18 @@ export function createEffects({ boardEl, renderPiece }) {
     for (const [html, extra] of parts) {
       const el = document.createElement('div');
       el.className = 'fxc';
-      el.style.cssText = `left:${(cell % n) * u}%;top:${Math.floor(cell / n) * u}%;width:${u}%;height:${u}%;${extra}`;
+      el.style.cssText = `left:${box.left}%;top:${box.top}%;width:${box.w}%;height:${box.h}%;${extra}`;
       el.innerHTML = html;
       layer.appendChild(el);
       setTimeout(() => el.remove(), dur + 50);
     }
   }
 
-  /** Screen flash, board shake and a particle burst on the bomb's square (on-screen index `cell`). */
-  function explode(cell, n) {
+  /**
+   * Screen flash, board shake and a particle burst on the bomb's square: on-screen index `cell` of an n-wide square
+   * board, or an explicit `rect` ({left, top, w, h} in % of the board) for other shapes.
+   */
+  function explode(cell, n, rect) {
     if (reduceMotion()) return;
     const flash = document.createElement('div');
     flash.className = 'flash';
@@ -100,10 +103,11 @@ export function createEffects({ boardEl, renderPiece }) {
 
     const boom = document.createElement('div');
     boom.className = 'boom';
-    const u = 100 / n;
-    boom.style.left = `${(cell % n) * u + u / 2}%`;
-    boom.style.top = `${Math.floor(cell / n) * u + u / 2}%`;
-    boom.style.width = boom.style.height = `${u}%`;
+    const box = rect || { left: (cell % n) * (100 / n), top: Math.floor(cell / n) * (100 / n), w: 100 / n, h: 100 / n };
+    boom.style.left = `${box.left + box.w / 2}%`;
+    boom.style.top = `${box.top + box.h / 2}%`;
+    boom.style.width = `${box.w}%`;
+    boom.style.height = `${box.h}%`;
     let parts = '<span class="blast">💥</span><span class="ring"></span>';
     for (let k = 0; k < 16; k++) {
       const a = (k / 16) * Math.PI * 2 + Math.random() * 0.4, d = 140 + Math.random() * 160;

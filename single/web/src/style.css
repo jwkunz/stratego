@@ -1,6 +1,6 @@
 :root {
   --bg: #1b1f27; --panel: #252b36; --text: #e8e6e1; --muted: #9aa3b2;
-  --red: #c4392d; --blue: #2f5fb3; --grass: #6d8f4e; --grass2: #628445; --lake: #3b7fbf;
+  --red: #c4392d; --blue: #2f5fb3; --green: #2e8b57; --yellow: #c9a227; --purple: #7e4bb3; --orange: #d9731f; --grass: #6d8f4e; --grass2: #628445; --lake: #3b7fbf;
   --zone: rgba(255, 255, 255, .13); --accent: #e0b84c;
 }
 * { box-sizing: border-box; }
@@ -182,3 +182,62 @@ body, #board, button { touch-action: manipulation; -webkit-user-select: none; us
 .score .bar i { display: block; height: 100%; transition: width .4s ease; }
 .score .bar i.red { background: var(--red); } .score .bar i.blue { background: var(--blue); }
 .score .muted-note { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+
+/* ---- six player colours ---- */
+.piece.green { background: linear-gradient(160deg, #3fae71, #1f6a3f); }
+.piece.yellow { background: linear-gradient(160deg, #dcb93a, #9a7a12); text-shadow: 0 1px 2px rgba(0, 0, 0, .55); }
+.piece.purple { background: linear-gradient(160deg, #9a66cf, #5b3589); }
+.piece.orange { background: linear-gradient(160deg, #ee8a3a, #a8520f); }
+.chip.green { background: var(--green); } .chip.yellow { background: var(--yellow); } .chip.purple { background: var(--purple); } .chip.orange { background: var(--orange); }
+.swatch.green { background: var(--green); } .swatch.yellow { background: var(--yellow); } .swatch.purple { background: var(--purple); } .swatch.orange { background: var(--orange); }
+.score .bar i.green { background: var(--green); } .score .bar i.yellow { background: var(--yellow); } .score .bar i.purple { background: var(--purple); } .score .bar i.orange { background: var(--orange); }
+.score .sp.out { opacity: .5; }
+.score .tag.out { color: var(--muted); }
+
+/* ---- hexagon boards: absolutely positioned hex cells in a zoomable, scrollable frame ---- */
+#stage { display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
+#zoombar { display: flex; gap: 6px; align-items: center; }
+#zoombar[hidden] { display: none; }
+#zoombar button { padding: 4px 12px; }
+#zoombar span { color: var(--muted); font-size: .8rem; }
+#boardwrap { max-width: 100%; }
+#stage.hexmode #boardwrap { width: min(94vw, calc(86vh * var(--aspect, 1)), 860px); max-height: 86vh; overflow: auto; border-radius: 4px; background: #3a2f22; }
+#board.hex { display: block; width: calc(var(--zoom, 1) * 100%); aspect-ratio: var(--aspect, 1); max-width: none; border: 0; border-radius: 0; gap: 0; }
+.cell.hex { position: absolute; display: flex; align-items: center; justify-content: center; background: var(--grass); cursor: default;
+  clip-path: polygon(50% 1%, 98.5% 26%, 98.5% 74%, 50% 99%, 1.5% 74%, 1.5% 26%); }
+.cell.hex.s1 { background: var(--grass2); }
+.cell.hex.s2 { background: #6b8c52; }
+.cell.hex.lake { background: var(--lake); }
+.cell.hex.camp-red { background: color-mix(in srgb, var(--grass) 62%, var(--red)); }
+.cell.hex.camp-blue { background: color-mix(in srgb, var(--grass) 62%, var(--blue)); }
+.cell.hex.camp-green { background: color-mix(in srgb, var(--grass) 62%, var(--green)); }
+.cell.hex.camp-yellow { background: color-mix(in srgb, var(--grass) 62%, var(--yellow)); }
+.cell.hex.camp-purple { background: color-mix(in srgb, var(--grass) 62%, var(--purple)); }
+.cell.hex.camp-orange { background: color-mix(in srgb, var(--grass) 62%, var(--orange)); }
+.cell.hex.last { background: color-mix(in srgb, var(--grass) 45%, var(--accent)); }
+.cell.hex.target { cursor: pointer; }
+.cell.hex.target.enemy::before { border-radius: 50%; width: 82%; height: 82%; }
+#board.hex .piece, #board.hex .fxc .piece { width: 74%; height: 60%; border-radius: 5px; border-width: 1px; }
+#board.hex .piece .r { font-size: 44cqw; }
+#board.hex .piece .n { display: none; }
+#board.hex.zoomed .piece .n { display: block; font-size: 17cqw; }
+#board.hex .piece.hidden .r { font-size: 40cqw; }
+#board.hex .piece.seen::after { font-size: 26cqw; top: 0; right: 1px; }
+#board.hex .fxc .half, #board.hex .fxc .spyhalf { align-items: center; }
+
+/* ---- seats in the hexagon setup panel ---- */
+.seat { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-top: 1px solid #333b48; flex-wrap: wrap; font-size: .9rem; }
+.seat .who { flex: 1; min-width: 7em; font-weight: 600; }
+.seat select { background: #1b1f27; color: var(--text); border: 1px solid #39424f; border-radius: 6px; padding: 5px 6px; font: inherit; font-size: .85rem; }
+.seats { margin-bottom: 14px; }
+.warn { color: #ffb4a8; font-size: .85rem; margin: 0 0 10px; }
+.lossrow { margin-bottom: 8px; }
+.lossrow h3 { margin: 0 0 4px; font-size: .8rem; font-weight: 600; display: flex; gap: 6px; align-items: center; }
+.lossrow h3 .pts { margin-left: auto; color: var(--accent); }
+.lossrow .chips { margin-bottom: 0; min-height: 0; }
+
+/* the game-over overlay sits over the visible frame, not over the (possibly zoomed and scrolled) board */
+#frame { position: relative; max-width: 100%; }
+#overlayhost { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+#overlayhost .overlay { pointer-events: auto; }
+.teamtag { flex: none; font-size: .7rem; font-weight: 700; min-width: 1.6em; text-align: center; padding: 1px 6px; border-radius: 10px; background: #4a5565; color: #fff; }

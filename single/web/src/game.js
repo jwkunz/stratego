@@ -100,7 +100,7 @@ export function randomLakes(n) {
 export const classicLakes = () => Array.from({ length: SIZE * SIZE }, (_, i) => isLake(rowOf(i), colOf(i)));
 
 /** Team labels per player: an array (by seat) or object; players without a team are their own team. */
-function normalizeTeams(players, teams) {
+export function normalizeTeams(players, teams) {
   const out = {};
   players.forEach((p, seat) => {
     const t = Array.isArray(teams) ? teams[seat] : teams && teams[p];
