@@ -21,8 +21,8 @@ The server prints the addresses to share:
   On your LAN:    http://192.168.1.20:8080   <- share this with the other players
 ```
 
-Two players open that address, pick a name, and one of them starts a game; the other picks it from the list
-(or types the 4-letter code). Settings (environment variables): `PORT` (default 8080) and `HOST` (default
+People open that address, pick a name, and one of them starts a game; the others pick it from the list (or type
+the 4-letter code). Settings (environment variables): `PORT` (default 8080) and `HOST` (default
 `0.0.0.0`, i.e. all network interfaces; use `HOST=127.0.0.1` to keep it to this machine only).
 
 If other devices cannot connect, the host's firewall is the usual cause. On Ubuntu with `ufw`:
@@ -30,19 +30,22 @@ If other devices cannot connect, the host's firewall is the usual cause. On Ubun
 
 ## What it does
 
-- **Lobby:** list of open games plus join-by-code. Game sizes: 10×10 classic, 12×12, 16×16 and 20×20 (the host
-  can re-roll the lakes of the larger boards before the game starts).
+- **Lobby and seats:** the host picks the board (classic square 10×10 to 20×20, or a hexagon star for 2 to 6 players),
+  how many seats are computer players and at what difficulty. Other people take the open seats from the list or by
+  code; the host can change seats, put them on teams, or "fill the rest with computers". The game moves to setup
+  when every seat is taken.
+- **Computer players** are run by the server on a short timer, using the same AI as the single-player game.
+- **Teams (hexagon games):** seats on the same team cannot attack each other and can see each other's armies.
 - **Fair play:** the server is authoritative. It uses the same rules engine as the single-player game
-  (`single/web/src/game.js`) to validate every move, and each player is only ever sent the enemy pieces they have
-  legitimately seen. Sides are assigned by coin flip; after a game, a rematch swaps them.
-- **Names and material:** both players' names are shown in setup and during the game, with a scoreboard that
-  highlights who is ahead on material (shared with the single-player game, `single/web/src/scoreboard.js`).
-- **Animations:** the same combat effects as the single-player game (slash, shatter, spy crosshair, cracking spy,
-  dissolving bomb, bomb explosion, fog-of-war shake, confetti on a captured flag). They live in
-  `single/web/src/effects.js`, shared by both clients, and respect the system "reduce motion" setting.
-- **Setup:** both players arrange their army at the same time and press Ready; the game starts when both have.
-- **Resilience:** a dropped player can reopen the page and resume (the tab remembers a session token). They have
-  two minutes before the game is forfeited. Resign, leave and rematch are all supported.
+  (`single/web/src/game.js`) to validate every move, and each person is only ever sent the pieces they may see
+  (their own, their teammates', and any revealed in combat). Classic games flip a coin for colours; after a game, a
+  rematch swaps them (hexagon games rotate who moves first).
+- **Dropping out:** a person can resign or leave mid-game, or time out after a disconnect (two minutes to reconnect);
+  they are knocked out, their pieces leave the board and everyone else plays on. A room closes when no people are left.
+- **Names, material and animations:** names in setup and during the game, a scoreboard that highlights who (or which
+  team) is ahead on material, and the same combat effects as the single-player game
+  (`single/web/src/{scoreboard,effects}.js`, `zoom.js`, `boardview.js`), respecting "reduce motion".
+- **Setup:** everyone arranges their army at the same time and presses Ready; the game starts when all are ready.
 
 ## Layout
 
@@ -51,7 +54,7 @@ server/
   src/index.js     command-line entry (prints LAN addresses)
   src/server.js    HTTP static file server + WebSocket upgrade (one port)
   src/lobby.js     sessions, rooms, and the message protocol (documented at the top of the file)
-  src/room.js      one game: setup validation, turns, hidden-information views
+  src/room.js      one game: seats, setup validation, turns, computer players, hidden-information views
   client/          the browser client (vanilla JS + Vite, built to one HTML file in public/)
   test/            node:test suites (real WebSocket clients against a real server)
 ```

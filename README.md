@@ -1,14 +1,25 @@
 # Stratego
 
-A single-player implementation of the classic board game **Stratego**, played against a computer
-opponent. It runs in any modern browser as one self-contained HTML file, and is also packaged as an
-offline Android app.
+An implementation of the classic board game **Stratego** that runs in any modern browser as one self-contained
+HTML file, is packaged as an offline Android app, and can be hosted from your computer so friends on your network
+can play each other. Besides the classic square board it has a **Hexagon Grid mode** for **2 to 6 players** with
+computer players, teams and pieces that move in six directions.
 
 ## Features
 
+- **Hexagon Grid mode (new in 2.0):** a hexagonal arena with one triangular camp per player, for 2 to 6 players.
+  Every piece moves to any of its **six** neighbouring cells, and Scouts slide along any of the six straight lines.
+  - **Computer players** can fill any seat, each with its own difficulty (Easy, Medium, Hard).
+  - **Teams:** put seats on Team A, B or C. Teammates cannot attack each other and **see each other's armies**.
+  - Everyone moves in turn around the table. A player is **out** when their flag is captured or they have no legal
+    move, and their pieces leave the board; the last player or team standing wins.
+  - Three camp sizes (Small 21, Medium 28, Large 36 pieces per player), symmetric random lakes, camps tinted per player,
+    and a zoomable, scrollable board that works on a phone.
+  - Everywhere: single player, multiplayer over your network, and the Android app.
+
 - Full Stratego rules: 10×10 board with two lakes, 40 pieces per side, scouts that slide any distance,
   miners that defuse bombs, the spy that beats the marshal when it attacks, and the two-square rule.
-- Hand-place your army or randomize it, then battle the computer (Red vs. Blue).
+- Hand-place your army or randomize it, then battle the computer (classic: Red vs. Blue).
 - Three difficulty levels, chosen in setup. All of them play fair, using only information a human could see
   (revealed pieces and the ranks still unaccounted for):
   - **Easy** plays carelessly and makes deliberate mistakes.
@@ -55,15 +66,17 @@ Source overview:
 
 | File | Purpose |
 |------|---------|
-| `single/web/src/game.js` | Rules engine (pure functions): moves, combat, setup, lakes, win detection |
-| `single/web/src/ai.js` | Computer opponent (easy / medium / hard) |
-| `single/web/src/main.js` | UI, setup phase, help tab, animations |
+| `single/web/src/topology.js` | Board shapes: square grid and hexagon star (neighbour tables, camps, symmetric lakes, layout) |
+| `single/web/src/game.js` | Rules engine (pure functions) for any topology, 2-6 players and teams: moves, combat, elimination, setup |
+| `single/web/src/ai.js` | Computer player (easy / medium / hard), for any board and number of opponents |
+| `single/web/src/boardview.js`, `zoom.js`, `effects.js`, `scoreboard.js` | Drawing, zoom, animations and the material scoreboard (shared with the multiplayer client) |
+| `single/web/src/main.js` | Single-player UI: setup, seats and teams, help tab |
 | `single/web/src/style.css` | Styling and animations |
 | `single/web/test/` | Unit tests |
 
 ## Android app (single player)
 
-Requires JDK 17 and the Android SDK (platform 35, build-tools 34). Open `Android/` in Android Studio,
+Requires JDK 17 and the Android SDK (platform 35, build-tools 34). Open `single/Android/` in Android Studio,
 or build from a shell:
 
 ```bash
@@ -79,7 +92,8 @@ signed with the standard debug key; a Play Store release would need your own sig
 
 ## Multiplayer over your LAN
 
-`server/` hosts head-to-head games from this machine: other players just open a web page. Quick start:
+`server/` hosts games for 2 to 6 people from this machine (classic or hexagon, with computer players filling any
+empty seats): other players just open a web page. Quick start:
 
 ```bash
 cd server && npm install && npm start
@@ -95,16 +109,17 @@ the single-file `dist/index.html`, and builds the Android debug APK, uploading b
 Pushing a version tag publishes a GitHub release with both files attached:
 
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git tag v2.0.0 && git push origin v2.0.0
 ```
 
 ## How to play
 
-Move one piece one square per turn (scouts may slide any distance in a straight line). Moving onto an
-enemy piece attacks it: both pieces are revealed and the higher rank wins (equal ranks are both removed).
-Bombs and flags never move. Only a miner can defuse a bomb, and only a spy attacking the marshal wins
-against it. Capture the enemy flag, or leave your opponent with no legal moves, to win. The in-app Help tab
-has the full rank table.
+Move one piece one square per turn (up, down, left or right on the classic board, any of six directions on a
+hexagon board; scouts may slide any distance in a straight line). Moving onto an enemy piece attacks it: both
+pieces are revealed and the higher rank wins (equal ranks are both removed). Bombs and flags never move. Only a
+miner can defuse a bomb, and only a spy attacking the marshal wins against it. Capture the enemy flag, or leave
+your opponents with no legal moves, to win; with more than two players the last player or team standing wins.
+The in-app Help tab has the full rank table and the hexagon rules.
 
 ## License
 
