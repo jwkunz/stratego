@@ -18,6 +18,8 @@ offline Android app.
 - **Expanded boards:** 12×12, 16×16 and 20×20, with the army scaled up to fill a deeper starting zone and
   a button to randomize the lakes (symmetric, and never blocking the board).
 - In-app **Help** tab describing every piece.
+- Your **name** on the setup and game screens (remembered between sessions), and a **material scoreboard** that
+  highlights who is ahead: points of material each side has left, a balance bar and a "leads by N" tag.
 - **Losses report** that totals the points each side has lost (a piece is worth its rank, Spy 1 to Marshal 10; bombs
   and the flag are not scored), and an eye marker on any piece, yours or the enemy's, whose identity is known.
 - Combat animations, all of which respect the system "reduce motion" setting:

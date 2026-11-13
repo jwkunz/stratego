@@ -3,6 +3,7 @@ import { SIZES, NAMES, RANK_ORDER, FLAG, BOMB, SPY, rowOf, territory, armyTotal,
   createState, legalMoves, applyMove, randomSetup, makeConfig, randomLakes } from './game.js';
 import { pickMove, DIFFICULTIES } from './ai.js';
 import { createEffects, reduceMotion } from './effects.js';
+import { scoreboardHTML } from './scoreboard.js';
 
 const $ = (id) => document.getElementById(id);
 const boardEl = $('board'), sideEl = $('side'), statusEl = $('status');
@@ -13,6 +14,14 @@ const label = (rank) => (rank === FLAG ? '🚩' : rank === BOMB ? '💣' : rank 
 
 /** Board configuration (size, lakes, army) chosen in setup; survives "New game". */
 let cfg = makeConfig(10);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cleanName = (raw) => String(raw ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 20) || 'Player';
+const stored = (() => { try { return localStorage.getItem('stratego.name'); } catch { return null; } })();
+/** The human player's display name (remembered between sessions). */
+let playerName = cleanName(stored);
+const saveName = () => { try { localStorage.setItem('stratego.name', playerName); } catch { /* storage unavailable */ } };
+const cap = (w) => w[0].toUpperCase() + w.slice(1);
+const opponentName = () => `Computer (${cap(difficulty)})`;
 /** Opponent strength: 'easy' | 'medium' | 'hard'. */
 let difficulty = 'medium';
 const redRows = () => territory('red', cfg.size);
@@ -100,11 +109,14 @@ function gameSide() {
         ${pieceHTML({ owner: 'red', rank: r })}<span>${NAMES[r]} ×${n}</span></button>`;
     }).join('');
     statusEl.textContent = 'Place your pieces';
-    return `<h2>Board size</h2>
+    return `<h2>Your name</h2>
+      <div class="row"><input id="pname" maxlength="20" value="${esc(playerName)}" aria-label="Your name"></div>
+      <h2>Board size</h2>
       <div class="row sizes">${sizes}${lakeBtn}</div>
       <h2>Opponent difficulty</h2>
       <div class="row sizes">${diffs}</div>
       <h2>Set up your army (${total}/${need})</h2>
+      <p class="matchup"><span class="swatch red"></span><b>${esc(playerName)}</b> (Red) vs <span class="swatch blue"></span><b>${esc(opponentName())}</b> (Blue)</p>
       <p>Pick a piece below, then click a square in your highlighted territory. Click a placed piece to pick it up and move or swap it; double-click to return it to the tray.</p>
       <div class="tray">${tray}</div>
       <div class="row"><button id="random">Random</button><button id="clear">Clear</button>
@@ -113,7 +125,12 @@ function gameSide() {
   const s = ui.state;
   statusEl.textContent = ui.phase === 'over' ? (s.winner === 'red' ? 'You win!' : 'You lose.')
     : s.turn === 'red' ? 'Your turn (Red)' : 'Blue is thinking…';
-  return `<h2>Your losses <span class="pts">${totalScore(s.dead.red)} pts</span></h2>${chips('red', s.dead.red)}
+  const board = scoreboardHTML({
+    me: { name: playerName, color: 'red', lost: s.dead.red },
+    opp: { name: opponentName(), color: 'blue', lost: s.dead.blue },
+    army: s.army,
+  });
+  return `${board}<h2>Your losses <span class="pts">${totalScore(s.dead.red)} pts</span></h2>${chips('red', s.dead.red)}
     <h2>Enemy losses <span class="pts">${totalScore(s.dead.blue)} pts</span></h2>${chips('blue', s.dead.blue)}
     <h2>Log</h2><ul id="log">${ui.log.map((l) => `<li>${l}</li>`).join('')}</ul>`;
 }
@@ -288,9 +305,13 @@ sideEl.addEventListener('click', (e) => {
   else if (t.id === 'clear') { ui.placed = {}; ui.tray = ui.pick = null; }
   else if (t.id === 'start') {
     ui.state = createState(ui.placed, randomSetup('blue', cfg.size), cfg);
-    ui.phase = 'play'; ui.log = [`Battle begins against ${difficulty} Blue. Red moves first.`];
+    ui.phase = 'play'; ui.log = [`${esc(playerName)} (Red) vs ${esc(opponentName())}. Red moves first.`];
   }
   render();
+});
+
+sideEl.addEventListener('change', (e) => {
+  if (e.target.id === 'pname') { playerName = cleanName(e.target.value); saveName(); render(); }
 });
 
 $('new').addEventListener('click', () => { clearTimeout(ui.timer); reset(); render(); });

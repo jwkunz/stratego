@@ -4,6 +4,7 @@
 import '../../../single/web/src/style.css';
 import './lobby.css';
 import { createEffects, reduceMotion } from '../../../single/web/src/effects.js';
+import { scoreboardHTML } from '../../../single/web/src/scoreboard.js';
 import { SIZES, NAMES, RANK_ORDER, FLAG, BOMB, SPY, territory, rowOf, randomSetup, totalScore } from '../../../single/web/src/game.js';
 
 const $ = (id) => document.getElementById(id);
@@ -227,8 +228,9 @@ function setupSide() {
   const action = ready
     ? '<button data-act="unready">Change setup</button>'
     : `<button id="random">Random</button><button id="clear">Clear</button><button class="primary" data-act="ready" ${total === need ? '' : 'disabled'}>Ready</button>`;
-  return `<h2>You are ${view.you === 'red' ? 'Red' : 'Blue'} vs ${esc(view.opp.name)} ${badge(view.opp)}</h2>
-    <h2>Set up your army (${total}/${need})</h2>
+  return `<h2>Set up your army (${total}/${need})</h2>
+    <p class="matchup"><span class="swatch ${view.you}"></span><b>${esc(view.me.name)}</b> (${view.you === 'red' ? 'Red' : 'Blue'}) vs
+      <span class="swatch ${oppColor()}"></span><b>${esc(view.opp.name)}</b> (${view.you === 'red' ? 'Blue' : 'Red'}) ${badge(view.opp)}</p>
     <p>${ready ? 'You are ready. Waiting for your opponent…' : 'Pick a piece below, then click a square in your highlighted territory. Click a placed piece to pick it up and move or swap it; double-click to return it to the tray.'}
       ${view.opp.ready ? '<span class="badge ok">opponent ready</span>' : '<span class="badge wait">opponent setting up</span>'}</p>
     <div class="tray">${tray}</div><div class="row">${lakes}${action}</div>`;
@@ -238,7 +240,12 @@ function playSide() {
   const away = !view.opp.connected && !view.opp.left
     ? '<p><span class="badge bad">Opponent disconnected</span> They have a couple of minutes to reconnect before forfeiting.</p>' : '';
   const resign = view.phase === 'play' ? '<div class="row"><button data-act="resign">Resign</button></div>' : '';
-  return `<h2>${esc(view.opp.name)} ${badge(view.opp)} <span class="pts">${view.you === 'red' ? 'Blue' : 'Red'}</span></h2>${away}
+  const board = scoreboardHTML({
+    me: { name: view.me.name, color: view.you, lost: view.dead.me },
+    opp: { name: view.opp.name, color: oppColor(), lost: view.dead.opp, extra: badge(view.opp) },
+    army: view.army,
+  });
+  return `${board}${away}
     <h2>Your losses <span class="pts">${totalScore(view.dead.me)} pts</span></h2>${chips(view.you, view.dead.me)}
     <h2>Enemy losses <span class="pts">${totalScore(view.dead.opp)} pts</span></h2>${chips(oppColor(), view.dead.opp)}
     ${resign}<h2>Log</h2><ul id="log">${log.map((l) => `<li>${l}</li>`).join('')}</ul>`;

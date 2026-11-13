@@ -35,6 +35,8 @@ If other devices cannot connect, the host's firewall is the usual cause. On Ubun
 - **Fair play:** the server is authoritative. It uses the same rules engine as the single-player game
   (`single/web/src/game.js`) to validate every move, and each player is only ever sent the enemy pieces they have
   legitimately seen. Sides are assigned by coin flip; after a game, a rematch swaps them.
+- **Names and material:** both players' names are shown in setup and during the game, with a scoreboard that
+  highlights who is ahead on material (shared with the single-player game, `single/web/src/scoreboard.js`).
 - **Animations:** the same combat effects as the single-player game (slash, shatter, spy crosshair, cracking spy,
   dissolving bomb, bomb explosion, fog-of-war shake, confetti on a captured flag). They live in
   `single/web/src/effects.js`, shared by both clients, and respect the system "reduce motion" setting.

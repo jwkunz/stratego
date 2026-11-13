@@ -163,3 +163,22 @@ body, #board, button { touch-action: manipulation; -webkit-user-select: none; us
 }
 @media (prefers-reduced-motion: reduce) { #fx { display: none; } .piece.shaking { animation: none; } }
 #side h2 .pts { float: right; color: var(--accent); text-transform: none; letter-spacing: 0; font-size: .85rem; }
+
+/* ---- names and the material scoreboard (shared with the multiplayer client) ---- */
+.matchup { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--text); }
+.swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.swatch.red { background: var(--red); } .swatch.blue { background: var(--blue); }
+#side input { background: #1b1f27; color: var(--text); border: 1px solid #39424f; border-radius: 6px; padding: 8px 10px; font: inherit; max-width: 100%; }
+#side input:focus { outline: 2px solid var(--accent); }
+.score { margin-bottom: 14px; }
+.score .sp { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; border: 1px solid transparent; }
+.score .sp.lead { border-color: var(--accent); background: rgba(224, 184, 76, .12); box-shadow: 0 0 10px rgba(224, 184, 76, .25); }
+.score .who { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.score .who em { font-style: normal; font-weight: 400; color: var(--muted); }
+.score .lead .who { color: var(--accent); }
+.score .tag { font-size: .72rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.score .rem { min-width: 2.2em; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.score .bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 6px 0; background: #39424f; }
+.score .bar i { display: block; height: 100%; transition: width .4s ease; }
+.score .bar i.red { background: var(--red); } .score .bar i.blue { background: var(--blue); }
+.score .muted-note { font-size: .75rem; color: var(--muted); margin-top: 4px; }

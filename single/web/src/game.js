@@ -18,6 +18,8 @@ export const canMove = (rank) => rank >= SPY && rank <= MARSHAL;
 /** Points a piece is worth when lost: its rank (Spy 1 ... Marshal 10). Bombs and the flag are not scored. */
 export const pieceScore = (rank) => (canMove(rank) ? rank : 0);
 export const totalScore = (ranks) => ranks.reduce((sum, r) => sum + pieceScore(r), 0);
+/** Points in a whole army ({rank: count}); the material each side starts with. */
+export const armyScore = (army) => Object.entries(army).reduce((sum, [r, n]) => sum + pieceScore(Number(r)) * n, 0);
 /** Rows of a player's starting territory, back row first. */
 export const territory = (owner, n = SIZE) => {
   const d = depthFor(n);
