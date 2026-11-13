@@ -64,15 +64,21 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: single/web/package-lock.json
+          cache-dependency-path: |
+            single/web/package-lock.json
+            server/package-lock.json
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - name: Install web dependencies (Gradle runs the web build)
-        run: npm ci
-        working-directory: single/web
+      - name: Install web and server dependencies (Gradle builds the pages the app bundles)
+        run: |
+          npm ci --prefix single/web
+          npm ci --prefix server
+      - name: Java tests for the embedded web server
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+        working-directory: single/Android
       - name: Build APK
         run: ./gradlew :app:assembleDebug --no-daemon
         working-directory: single/Android

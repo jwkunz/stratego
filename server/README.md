@@ -9,6 +9,12 @@ their devices.
 Requires Node.js 18+.
 
 ```bash
+server/run.sh      # from anywhere: installs dependencies, rebuilds the client when sources changed, starts the server
+```
+
+or by hand:
+
+```bash
 cd server
 npm install
 npm start          # builds the web client, then starts the server on port 8080
@@ -47,11 +53,19 @@ If other devices cannot connect, the host's firewall is the usual cause. On Ubun
   (`single/web/src/{scoreboard,effects}.js`, `zoom.js`, `boardview.js`), respecting "reduce motion".
 - **Setup:** everyone arranges their army at the same time and presses Ready; the game starts when all are ready.
 
+## Hosting from the Android app
+
+The same game server also runs inside the Android app (`single/Android`), so a phone can host with no PC: `src/lobby.js`
+and `src/room.js` run unchanged in a WebView, and `src/host/` adapts them to the app's Java web server (see
+`src/host/host.js` for the bridge contract). `npm run build:android` builds that host page (`client/lan-host.html`).
+
 ## Layout
 
 ```
 server/
+  run.sh           one-command launcher
   src/index.js     command-line entry (prints LAN addresses)
+  src/host/        adapters that let the lobby run inside the Android app (bridge sockets, loopback)
   src/server.js    HTTP static file server + WebSocket upgrade (one port)
   src/lobby.js     sessions, rooms, and the message protocol (documented at the top of the file)
   src/room.js      one game: seats, setup validation, turns, computer players, hidden-information views

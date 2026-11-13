@@ -16,6 +16,9 @@ computer players, teams and pieces that move in six directions.
   - Three camp sizes (Small 21, Medium 28, Large 36 pieces per player), symmetric random lakes, camps tinted per player,
     and a zoomable, scrollable board that works on a phone.
   - Everywhere: single player, multiplayer over your network, and the Android app.
+- **Host a LAN game from your phone (new in 2.1):** the Android app can run the game server itself. Tap Play on LAN >
+  Host, share the address, QR code or let nearby phones find it, and everyone on the same Wi-Fi plays (computer players
+  can fill empty seats). The app also has a Join screen with discovery.
 
 - Full Stratego rules: 10×10 board with two lakes, 40 pieces per side, scouts that slide any distance,
   miners that defuse bombs, the spy that beats the marshal when it attacks, and the two-square rule.
@@ -74,7 +77,7 @@ Source overview:
 | `single/web/src/style.css` | Styling and animations |
 | `single/web/test/` | Unit tests |
 
-## Android app (single player)
+## Android app
 
 Requires JDK 17 and the Android SDK (platform 35, build-tools 34). Open `single/Android/` in Android Studio,
 or build from a shell:
@@ -86,8 +89,9 @@ echo "sdk.dir=$HOME/Android/Sdk" > local.properties   # Android Studio creates t
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The Gradle build runs `npm run build` in `single/web/` and bundles `single/web/dist/index.html` as an asset; pass
-`-PskipWebBuild` to reuse an existing build. The app needs no network permission. The debug APK is
+The Gradle build runs `npm run build` in `single/web/` and `server/` and bundles the pages as assets; pass
+`-PskipWebBuild` to reuse existing builds. Single player works offline; hosting and joining LAN games use the network
+(see [single/Android/README.md](single/Android/README.md) for how and what permissions). The debug APK is
 signed with the standard debug key; a Play Store release would need your own signing key.
 
 ## Multiplayer over your LAN
@@ -96,8 +100,10 @@ signed with the standard debug key; a Play Store release would need your own sig
 empty seats): other players just open a web page. Quick start:
 
 ```bash
-cd server && npm install && npm start
+server/run.sh          # installs, builds if needed and starts it (PORT=9000 server/run.sh to change the port)
 ```
+
+or `cd server && npm install && npm start`. The Android app can host too, with no PC at all.
 
 See [server/README.md](server/README.md) for details.
 
