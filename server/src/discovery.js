@@ -30,6 +30,7 @@ export function advertise({ port, name = `Stratego on ${os.hostname()}`, interfa
   const [addr] = lanAddresses(interfaces);
   if (!addr) return null;
   const bonjour = new Bonjour();
+  bonjour.server.mdns.on('error', () => {}); // no multicast on this network: devices can still type the address
   bonjour.publish({ name, type: 'stratego', protocol: 'tcp', port, txt: { app: 'stratego', v: '2', addr }, disableIPv6: true });
   return {
     name, addr,
@@ -40,6 +41,7 @@ export function advertise({ port, name = `Stratego on ${os.hostname()}`, interfa
 /** Finds Stratego servers on the network (used by tests and handy for debugging). Returns { stop() }. */
 export function browse(onFound) {
   const bonjour = new Bonjour();
+  bonjour.server.mdns.on('error', () => {});
   const browser = bonjour.find({ type: 'stratego', protocol: 'tcp' }, (s) => onFound({ name: s.name, port: s.port, txt: s.txt, addresses: s.addresses }));
   return { stop: () => { browser.stop(); bonjour.destroy(); } };
 }

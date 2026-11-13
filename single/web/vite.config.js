@@ -2,10 +2,11 @@ import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 
-const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+// the project version lives in one file at the repository root
+const version = readFileSync(new URL('../../VERSION', import.meta.url), 'utf8').trim();
 
 export default defineConfig({
-  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+  define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [viteSingleFile()],
   build: { minify: true, cssMinify: true, target: 'es2020' },
 });

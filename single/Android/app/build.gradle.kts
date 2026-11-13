@@ -2,6 +2,10 @@ plugins {
     id("com.android.application")
 }
 
+// One version for the whole project: the VERSION file at the repository root.
+val projectVersion = rootProject.file("../../VERSION").readText().trim()
+val versionParts = projectVersion.split(".").map { it.toInt() }
+
 android {
     namespace = "com.stratego.game"
     compileSdk = 35
@@ -10,8 +14,8 @@ android {
         applicationId = "com.stratego.game"
         minSdk = 26
         targetSdk = 35
-        versionCode = 20100
-        versionName = "2.1.0"
+        versionCode = versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
+        versionName = projectVersion
     }
 
     buildTypes {

@@ -1,5 +1,6 @@
 // Command line entry point: `npm start`.   PORT=8080 HOST=0.0.0.0
 import os from 'node:os';
+import { readFileSync } from 'node:fs';
 import { createGameServer } from './server.js';
 import { advertise } from './discovery.js';
 
@@ -19,7 +20,7 @@ const lan = Object.values(os.networkInterfaces()).flat()
   .filter((i) => i && i.family === 'IPv4' && !i.internal)
   .map((i) => i.address);
 
-console.log('\nStratego server is running.\n');
+console.log(`\nStratego server ${readFileSync(new URL('../../VERSION', import.meta.url), 'utf8').trim()} is running.\n`);
 console.log(`  This machine:   http://localhost:${port}`);
 if (host === '0.0.0.0' || host === '::') {
   for (const a of lan) console.log(`  On your LAN:    http://${a}:${port}   <- share this with the other players`);

@@ -11,6 +11,17 @@ permissions:
   contents: read
 
 jobs:
+  version:
+    name: Version files agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check VERSION, the package files and (for a release) the tag
+        run: node scripts/version.mjs check "${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}"
+
   web:
     name: Web tests and single-file build
     runs-on: ubuntu-latest
@@ -92,7 +103,7 @@ jobs:
   release:
     name: Publish GitHub release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [web, android, server]
+    needs: [version, web, android, server]
     runs-on: ubuntu-latest
     permissions:
       contents: write

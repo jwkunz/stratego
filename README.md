@@ -113,11 +113,21 @@ See [server/README.md](server/README.md) for details.
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request: it runs the web and server tests, builds
 the single-file `dist/index.html`, and builds the Android debug APK, uploading both as workflow artifacts.
 
-Pushing a version tag publishes a GitHub release with both files attached:
+Pushing a version tag publishes a GitHub release with both files attached; CI refuses a tag that does not match the
+`VERSION` file:
 
 ```bash
-git tag v2.0.0 && git push origin v2.0.0
+node scripts/version.mjs set 2.2.0     # then commit
+git tag v2.2.0 && git push origin main v2.2.0
 ```
+
+## Versioning
+
+The whole project has one version, in the `VERSION` file at the repository root (`MAJOR.MINOR.PATCH`). The web and
+server builds and the Android app (`versionName`, and `versionCode = major*10000 + minor*100 + patch`) read it
+directly, and the version shows in the apps (`v2.1.0`). npm needs the number in each `package.json` and lock file too,
+so `node scripts/version.mjs set X.Y.Z` updates all of them together and `node scripts/version.mjs check` (run by CI)
+fails if anything disagrees.
 
 ## How to play
 
