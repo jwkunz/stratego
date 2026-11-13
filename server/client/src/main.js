@@ -51,7 +51,10 @@ const showError = (msg) => {
 
 // ---- connection ------------------------------------------------------------------------------
 function connect() {
-  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+  // When this page is the host (inside the Android app) our own connection stays in memory; otherwise it is a real WebSocket.
+  ws = window.__stratego_host
+    ? window.__stratego_host.connectLoopback()
+    : new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
   ws.onopen = () => send({ t: 'hello', name: myName, token });
   ws.onmessage = (e) => { try { onMessage(JSON.parse(e.data)); } catch (err) { console.error(err); } };
   ws.onclose = () => { connected = false; render(); setTimeout(connect, 1500); };

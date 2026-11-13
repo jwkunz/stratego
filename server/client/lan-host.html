@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stratego LAN host</title>
+<link rel="icon" href="data:,">
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>STRATEGO</h1><small id="ver"></small>
+    <div id="status"></div>
+    <button id="leave" hidden>Leave game</button>
+  </header>
+  <section id="hostbar" hidden></section>
+  <main>
+    <div id="stage" hidden>
+      <div id="zoombar" hidden><button data-zoom="out" aria-label="Zoom out">−</button><button data-zoom="fit">Fit</button><button data-zoom="in" aria-label="Zoom in">+</button><span>Zoom and scroll the board to see the pieces larger</span></div>
+      <div id="frame"><div id="boardwrap"><div id="board"></div></div><div id="overlayhost"></div></div>
+    </div>
+    <aside id="side"></aside>
+  </main>
+</div>
+<script type="module" src="/src/hosted.js"></script>
+</body>
+</html>

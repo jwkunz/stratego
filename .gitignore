@@ -17,6 +17,7 @@ npm-debug.log*
 # --- Server (multiplayer) ---
 server/node_modules/
 server/public/
+server/dist-android/
 
 # --- Android / Gradle ---
 single/Android/.gradle/

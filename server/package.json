@@ -10,7 +10,8 @@
     "watch": "vite build --watch",
     "start": "npm run build && node src/index.js",
     "serve": "node src/index.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "build:android": "vite build --config vite.android.config.js"
   },
   "engines": {
     "node": ">=18"
@@ -19,6 +20,8 @@
     "ws": "^8.23.0"
   },
   "devDependencies": {
+    "jsqr": "^1.4.0",
+    "qrcode-generator": "^2.0.4",
     "vite": "^8.3.8",
     "vite-plugin-singlefile": "^2.3.4"
   }

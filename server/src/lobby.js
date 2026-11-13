@@ -26,8 +26,10 @@
 //   lobby {rooms: [{code, host, mode, size, players, open, ai}]}
 //   state {view, event}       your private view of your game; `event` describes what just happened (or null)
 //   error {msg}
-import { randomBytes } from 'node:crypto';
 import { Room, GameError } from './room.js';
+
+/** A random session token. Uses the Web Crypto API, which exists in Node 20+ and in browsers/WebViews alike. */
+const randomToken = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
 
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I or O
 const OPEN = 1; // ws.OPEN
@@ -104,7 +106,7 @@ export class Lobby {
       clearTimeout(s.dropTimer);
       s.ws = conn.ws;
     } else {
-      s = { token: randomBytes(16).toString('hex'), name: cleanName(msg.name), ws: conn.ws, roomCode: null, dropTimer: null };
+      s = { token: randomToken(), name: cleanName(msg.name), ws: conn.ws, roomCode: null, dropTimer: null };
       this.sessions.set(s.token, s);
     }
     conn.session = s;
