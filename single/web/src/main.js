@@ -163,7 +163,7 @@ function seatRows() {
 function gameSide() {
   if (ui.phase === 'setup') {
     const total = placedCount(), need = armyTotal(cfg.army);
-    const modes = [['square', 'Square (classic)'], ['hex', 'Hexagon']].map(([m, t]) => `<button data-mode="${m}" class="${mode === m ? 'on' : ''}">${t}</button>`).join('');
+    const modes = [['square', 'Square (classic)'], ['hex', 'Hextic']].map(([m, t]) => `<button data-mode="${m}" class="${mode === m ? 'on' : ''}">${t}</button>`).join('');
     let options;
     if (isHex()) {
       const sizes = Object.entries(HEX_SIZES).map(([k, a]) => `<button data-hexsize="${k}" class="${hex.size === k ? 'on' : ''}">${cap(k)} · ${(a * (a + 1)) / 2} pieces</button>`).join('');
@@ -252,9 +252,9 @@ function helpSide() {
       <li>Enemy pieces are hidden (★) until they fight or a Scout moves more than one square. A revealed piece is marked with an eye, on your pieces too: it means the enemy has seen it and knows what it is.</li>
       <li>Scoring: each lost piece is worth its rank (Spy 1 up to Marshal 10), and the Losses panel totals the points each side has lost. Bombs and the Flag are not scored.</li>
     </ul>
-    <h2>Hexagon mode</h2>
+    <h2>Hextic mode</h2>
     <ul class="rules">
-      <li>Choose <b>Hexagon</b> under Grid. The board is a hexagonal arena with one triangular camp per player (2 to 6 players). Every piece moves to any of its <b>six</b> neighbouring cells, and Scouts slide in a straight line along any of the six directions.</li>
+      <li><b>Hextic</b> is the hexagon-grid variant: choose it under Grid. The board is a hexagonal arena with one triangular camp per player (2 to 6 players). Every piece moves to any of its <b>six</b> neighbouring cells, and Scouts slide in a straight line along any of the six directions.</li>
       <li>You are Red, at the bottom. Every other seat is a computer player; give each its own difficulty. Camp size (Small, Medium, Large) sets how many pieces each army has.</li>
       <li>Everyone moves in turn around the table. A player is <b>out</b> when their Flag is captured or when they have no legal move on their turn, and their pieces leave the board. The last player or team standing wins.</li>
       <li><b>Teams:</b> give seats the same team to play together. Teammates cannot attack each other and you can see your teammates' pieces. Different teams fight as usual.</li>

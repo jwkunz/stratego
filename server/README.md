@@ -30,16 +30,16 @@ If other devices cannot connect, the host's firewall is the usual cause. On Ubun
 
 ## What it does
 
-- **Lobby and seats:** the host picks the board (classic square 10×10 to 20×20, or a hexagon star for 2 to 6 players),
+- **Lobby and seats:** the host picks the board (classic square 10×10 to 20×20, or a Hextic hexagon star for 2 to 6 players),
   how many seats are computer players and at what difficulty. Other people take the open seats from the list or by
   code; the host can change seats, put them on teams, or "fill the rest with computers". The game moves to setup
   when every seat is taken.
 - **Computer players** are run by the server on a short timer, using the same AI as the single-player game.
-- **Teams (hexagon games):** seats on the same team cannot attack each other and can see each other's armies.
+- **Teams (Hextic games):** seats on the same team cannot attack each other and can see each other's armies.
 - **Fair play:** the server is authoritative. It uses the same rules engine as the single-player game
   (`single/web/src/game.js`) to validate every move, and each person is only ever sent the pieces they may see
   (their own, their teammates', and any revealed in combat). Classic games flip a coin for colours; after a game, a
-  rematch swaps them (hexagon games rotate who moves first).
+  rematch swaps them (Hextic games rotate who moves first).
 - **Dropping out:** a person can resign or leave mid-game, or time out after a disconnect (two minutes to reconnect);
   they are knocked out, their pieces leave the board and everyone else plays on. A room closes when no people are left.
 - **Names, material and animations:** names in setup and during the game, a scoreboard that highlights who (or which

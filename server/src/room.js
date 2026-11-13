@@ -51,7 +51,7 @@ export function parseOptions(o = {}) {
     size = String(o.size ?? 'medium');
     if (!(size in HEX_SIZES)) throw new GameError('Unsupported board size');
     players = Number(o.players ?? 3);
-    if (!HEX_PLAYERS.includes(players)) throw new GameError('Hexagon games have 2 to 6 players');
+    if (!HEX_PLAYERS.includes(players)) throw new GameError('Hextic games have 2 to 6 players');
   }
   const ai = Number(o.ai ?? 0);
   if (!isInt(ai) || ai < 0 || ai > players - 1) throw new GameError('Keep at least one human seat for yourself');

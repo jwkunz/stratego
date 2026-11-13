@@ -260,7 +260,7 @@ function chips(color, ranks) {
 
 function lobbySide() {
   const f = form;
-  const modes = [['square', 'Square (classic)'], ['hex', 'Hexagon']].map(([m, t]) => `<button data-form="mode" data-v="${m}" class="${f.mode === m ? 'on' : ''}">${t}</button>`).join('');
+  const modes = [['square', 'Square (classic)'], ['hex', 'Hextic']].map(([m, t]) => `<button data-form="mode" data-v="${m}" class="${f.mode === m ? 'on' : ''}">${t}</button>`).join('');
   const sizes = f.mode === 'square'
     ? SIZES.map((n) => `<button data-form="size" data-v="${n}" class="${f.size === n ? 'on' : ''}">${n}×${n}${n === 10 ? ' classic' : ''}</button>`).join('')
     : Object.entries(HEX_SIZES).map(([k, a]) => `<button data-form="hexSize" data-v="${k}" class="${f.hexSize === k ? 'on' : ''}">${cap(k)} · ${(a * (a + 1)) / 2} pieces</button>`).join('');
@@ -268,7 +268,7 @@ function lobbySide() {
   const counts = f.mode === 'hex' ? `<h2>Players</h2><div class="row sizes">${HEX_PLAYERS.map((n) => `<button data-form="players" data-v="${n}" class="${f.players === n ? 'on' : ''}">${n}</button>`).join('')}</div>` : '';
   const aiChoices = Array.from({ length: seatsN }, (_, k) => k).map((k) => `<button data-form="ai" data-v="${k}" class="${Math.min(f.ai, seatsN - 1) === k ? 'on' : ''}">${k}</button>`).join('');
   const list = rooms.length
-    ? `<ul class="rooms">${rooms.map((r) => `<li><span><strong>${esc(r.host)}</strong> <span class="meta">${r.mode === 'hex' ? `hexagon ${esc(r.size)}, ${r.players} players` : `${r.size}×${r.size}`} · ${r.open} open seat${r.open === 1 ? '' : 's'}${r.ai ? ` · ${r.ai} computer${r.ai === 1 ? '' : 's'}` : ''} · ${esc(r.code)}</span></span><button data-join="${esc(r.code)}" class="primary">Join</button></li>`).join('')}</ul>`
+    ? `<ul class="rooms">${rooms.map((r) => `<li><span><strong>${esc(r.host)}</strong> <span class="meta">${r.mode === 'hex' ? `Hextic ${esc(r.size)}, ${r.players} players` : `${r.size}×${r.size}`} · ${r.open} open seat${r.open === 1 ? '' : 's'}${r.ai ? ` · ${r.ai} computer${r.ai === 1 ? '' : 's'}` : ''} · ${esc(r.code)}</span></span><button data-join="${esc(r.code)}" class="primary">Join</button></li>`).join('')}</ul>`
     : '<p>No open games yet. Start one, or wait for another player to.</p>';
   return `<h2>Your name</h2>
     <div class="row"><input id="name" maxlength="20" value="${esc(myName)}" aria-label="Your name"><button id="rename">Save</button></div>
@@ -306,7 +306,7 @@ function waitingSide() {
     <p>Game code</p><div class="code">${esc(view.code)}</div>
     <p>Other people on your network can open this page and pick your game from the list, or type the code. ${open} seat${open === 1 ? '' : 's'} still open.</p>
     <div class="seats">${rows}</div>${hostTools}
-    <p class="muted">${view.mode === 'hex' ? `Hexagon · ${esc(view.hexSize)} · ${view.players.length} players` : `${view.size}×${view.size} board`}</p>`;
+    <p class="muted">${view.mode === 'hex' ? `Hextic · ${esc(view.hexSize)} · ${view.players.length} players` : `${view.size}×${view.size} board`}</p>`;
 }
 
 function setupSide() {

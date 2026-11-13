@@ -2,12 +2,12 @@
 
 An implementation of the classic board game **Stratego** that runs in any modern browser as one self-contained
 HTML file, is packaged as an offline Android app, and can be hosted from your computer so friends on your network
-can play each other. Besides the classic square board it has a **Hexagon Grid mode** for **2 to 6 players** with
+can play each other. Besides the classic square board it has **Hextic**, a hexagon-grid variant for **2 to 6 players** with
 computer players, teams and pieces that move in six directions.
 
 ## Features
 
-- **Hexagon Grid mode (new in 2.0):** a hexagonal arena with one triangular camp per player, for 2 to 6 players.
+- **Hextic (new in 2.0), the hexagon-grid mode:** a hexagonal arena with one triangular camp per player, for 2 to 6 players.
   Every piece moves to any of its **six** neighbouring cells, and Scouts slide along any of the six straight lines.
   - **Computer players** can fill any seat, each with its own difficulty (Easy, Medium, Hard).
   - **Teams:** put seats on Team A, B or C. Teammates cannot attack each other and **see each other's armies**.
@@ -92,7 +92,7 @@ signed with the standard debug key; a Play Store release would need your own sig
 
 ## Multiplayer over your LAN
 
-`server/` hosts games for 2 to 6 people from this machine (classic or hexagon, with computer players filling any
+`server/` hosts games for 2 to 6 people from this machine (classic or Hextic, with computer players filling any
 empty seats): other players just open a web page. Quick start:
 
 ```bash
@@ -119,7 +119,7 @@ hexagon board; scouts may slide any distance in a straight line). Moving onto an
 pieces are revealed and the higher rank wins (equal ranks are both removed). Bombs and flags never move. Only a
 miner can defuse a bomb, and only a spy attacking the marshal wins against it. Capture the enemy flag, or leave
 your opponents with no legal moves, to win; with more than two players the last player or team standing wins.
-The in-app Help tab has the full rank table and the hexagon rules.
+The in-app Help tab has the full rank table and the Hextic rules.
 
 ## License
 
