@@ -14,7 +14,10 @@
     <button id="leave" hidden>Leave game</button>
   </header>
   <main>
-    <div id="board" hidden></div>
+    <div id="stage" hidden>
+      <div id="zoombar" hidden><button data-zoom="out" aria-label="Zoom out">−</button><button data-zoom="fit">Fit</button><button data-zoom="in" aria-label="Zoom in">+</button><span>Zoom and scroll the board to see the pieces larger</span></div>
+      <div id="frame"><div id="boardwrap"><div id="board"></div></div><div id="overlayhost"></div></div>
+    </div>
     <aside id="side"></aside>
   </main>
 </div>

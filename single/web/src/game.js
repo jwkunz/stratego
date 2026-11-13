@@ -206,7 +206,7 @@ let nextId = 1;
  * State fields: topo, players, teams, alive, board, turn, winner/winners/winTeam/winReason, shuttle, dead, lastMove;
  * for compatibility with the square-only code, `size` (square boards) and `lakes` are kept too.
  */
-export function createStateN(setups, cfg) {
+export function createStateN(setups, cfg, { first = null } = {}) {
   const board = Array(cfg.topo.cells).fill(null);
   for (const owner of cfg.players) {
     for (const [i, rank] of Object.entries(setups[owner] || {})) {
@@ -217,7 +217,7 @@ export function createStateN(setups, cfg) {
   return {
     kind: cfg.kind, topo: cfg.topo, size: cfg.size, lakes: cfg.lakes, army: cfg.army,
     players: cfg.players, teams: cfg.teams, alive: each(() => true), outReason: {},
-    board, turn: cfg.players[0],
+    board, turn: first && cfg.players.includes(first) ? first : cfg.players[0],
     winner: null, winners: [], winTeam: null, winReason: null,
     shuttle: each(() => null), dead: each(() => []),
     lastMove: null,
@@ -298,6 +298,58 @@ export function nextAlive(state, player) {
 export const sameTeam = (state, a, b) => state.teams[a] === state.teams[b];
 
 /**
+ * End-of-turn bookkeeping on a state that is being built (mutates `next`, whose board, alive and outReason are copies):
+ * knocks out the `pending` players, removes their pieces unless that ends the game, hands the turn to the next player
+ * who can move (players with no legal move are knocked out too), and declares the winners when one team is left.
+ * `from` is the player who just moved (or the one who left); with `keepTurn` the turn stays with `next.turn` when
+ * that player can still move, which is what a forfeit by somebody else needs.
+ */
+function settle(next, from, pending, eliminated, keepTurn) {
+  const { board } = next;
+  let lastReason = null;
+  const eliminate = (player, reason) => {
+    next.alive[player] = false; next.outReason[player] = reason; lastReason = reason;
+    eliminated.push({ player, reason });
+  };
+  const aliveTeams = () => new Set(next.players.filter((p) => next.alive[p]).map((p) => next.teams[p]));
+  const purge = (player) => { for (let i = 0; i < board.length; i++) if (board[i] && board[i].owner === player) board[i] = null; };
+
+  for (const e of pending) eliminate(e.player, e.reason);
+  let over = aliveTeams().size <= 1;
+  if (!over) for (const e of pending) purge(e.player);
+
+  let current = keepTurn && next.alive[next.turn] ? next.turn : nextAlive(next, from);
+  while (!over) {
+    if (hasLegalMove(next, current)) { next.turn = current; break; }
+    eliminate(current, 'blocked');
+    over = aliveTeams().size <= 1;
+    if (!over) purge(current);
+    current = nextAlive(next, current);
+  }
+
+  if (over) {
+    const [team] = aliveTeams();
+    next.winTeam = team;
+    next.winners = next.players.filter((p) => next.teams[p] === team);
+    next.winner = next.players.find((p) => next.alive[p] && next.teams[p] === team);
+    next.winReason = lastReason;
+    next.turn = next.players[(next.players.indexOf(from) + 1) % next.players.length];
+  }
+}
+
+/**
+ * A player leaves the game (resigns, quits or drops out): they are eliminated and their pieces leave the board.
+ * Returns a new state; `eliminated` on the result lists everyone knocked out (the player, plus anybody left without a move).
+ */
+export function forfeit(state, player, reason = 'resigned') {
+  if (state.winner || !state.alive[player]) return { state, eliminated: [] };
+  const next = { ...state, board: state.board.slice(), alive: { ...state.alive }, outReason: { ...state.outReason } };
+  const eliminated = [];
+  settle(next, player, [{ player, reason }], eliminated, state.turn !== player);
+  return { state: next, eliminated };
+}
+
+/**
  * Applies a (legal) move. Returns {state, event}; the input state is not mutated.
  * A player is eliminated when their flag is captured, or when they have no legal move on their turn; their pieces
  * leave the board (unless that ends the game, so the final position can still be shown). The game ends when only one
@@ -340,35 +392,6 @@ export function applyMove(state, move) {
       : { from: move.from, to: move.to, count: 1 };
 
   const next = { ...state, board, dead, shuttle, lastMove: move, alive: { ...state.alive }, outReason: { ...state.outReason } };
-  let lastReason = null;
-  const eliminate = (player, reason) => {
-    next.alive[player] = false; next.outReason[player] = reason; lastReason = reason;
-    event.eliminated.push({ player, reason });
-  };
-  const aliveTeams = () => new Set(next.players.filter((p) => next.alive[p]).map((p) => next.teams[p]));
-  const purge = (player) => { for (let i = 0; i < board.length; i++) if (board[i] && board[i].owner === player) board[i] = null; };
-
-  for (const e of pending) eliminate(e.player, e.reason);
-  let over = aliveTeams().size <= 1;
-  if (!over) for (const e of pending) purge(e.player);
-
-  // pass the turn to the next player who can move; players with no legal move are out
-  let current = owner;
-  while (!over) {
-    current = nextAlive(next, current);
-    if (hasLegalMove(next, current)) { next.turn = current; break; }
-    eliminate(current, 'blocked');
-    over = aliveTeams().size <= 1;
-    if (!over) purge(current);
-  }
-
-  if (over) {
-    const [team] = aliveTeams();
-    next.winTeam = team;
-    next.winners = next.players.filter((p) => next.teams[p] === team);
-    next.winner = next.players.find((p) => next.alive[p] && next.teams[p] === team);
-    next.winReason = lastReason;
-    next.turn = next.players[(next.players.indexOf(owner) + 1) % next.players.length];
-  }
+  settle(next, owner, pending, event.eliminated, false);
   return { state: next, event };
 }

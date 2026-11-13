@@ -189,3 +189,52 @@ test('hasLegalMove agrees with legalMoves', () => {
   const s = createStateN(Object.fromEntries(cfg.players.map((p) => [p, randomSetupFor(cfg, p)])), cfg);
   for (const p of cfg.players) assert.equal(hasLegalMove(s, p), legalMoves(s, p).length > 0);
 });
+
+test('a forfeit knocks the player out, keeps the turn where it was, and can end the game', async () => {
+  const { forfeit } = await import('../src/game.js');
+  const cfg = open(3);
+  const s0 = scene(cfg, [
+    ['red', MINER, 0, 0], ['red', FLAG, 0, 4], ['blue', MINER, 2, 2], ['blue', FLAG, 4, 2], ['green', MINER, -2, -2], ['green', FLAG, -4, 0],
+  ]);
+  assert.equal(s0.turn, 'red');
+  // somebody else forfeits: the turn does not move
+  let r = forfeit(s0, 'green', 'left');
+  assert.deepEqual(r.eliminated, [{ player: 'green', reason: 'left' }]);
+  assert.equal(r.state.turn, 'red');
+  assert.equal(r.state.alive.green, false);
+  assert.ok(r.state.board.every((p) => !p || p.owner !== 'green'), 'their pieces leave the board');
+  assert.equal(r.state.winner, null);
+  // the player whose turn it is forfeits: the next living player moves
+  r = forfeit(s0, 'red', 'resigned');
+  assert.equal(r.state.turn, 'blue');
+  // a second forfeit leaves one player: game over, winner declared, pieces kept for the final reveal
+  const end = forfeit(r.state, 'green', 'left').state;
+  assert.equal(end.winner, 'blue');
+  assert.deepEqual(end.winners, ['blue']);
+  assert.equal(end.winReason, 'left');
+  assert.ok(end.board.some((p) => p && p.owner === 'blue'));
+  // forfeiting twice or after the end changes nothing
+  assert.equal(forfeit(end, 'blue').state, end);
+  assert.equal(forfeit(r.state, 'red').state, r.state);
+});
+
+test('a forfeit on a team board hands the win to the surviving team', async () => {
+  const { forfeit } = await import('../src/game.js');
+  const cfg = open(4, ['A', 'B', 'A', 'B']);
+  const s = scene(cfg, [
+    ['red', MINER, 0, 0], ['red', FLAG, 0, 5], ['green', MINER, 1, 0], ['green', FLAG, 3, -5],
+    ['blue', MINER, -1, 0], ['blue', FLAG, -5, 5], ['yellow', MINER, -4, 1], ['yellow', FLAG, -2, -4],
+  ]);
+  let r = forfeit(s, 'blue', 'left').state;
+  assert.equal(r.winner, null, 'yellow is still playing for team B');
+  r = forfeit(r, 'yellow', 'left').state;
+  assert.equal(r.winTeam, 'A');
+  assert.deepEqual(r.winners, ['red', 'green']);
+});
+
+test('the first mover can be chosen', () => {
+  const cfg = open(4);
+  assert.equal(createStateN({}, cfg).turn, 'red');
+  assert.equal(createStateN({}, cfg, { first: 'yellow' }).turn, 'yellow');
+  assert.equal(createStateN({}, cfg, { first: 'nobody' }).turn, 'red');
+});

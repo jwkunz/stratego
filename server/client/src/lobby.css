@@ -1,6 +1,6 @@
 /* Extras for the multiplayer client; the board, pieces and tray come from the single-player stylesheet. */
-#board[hidden] { display: none; }
-main:has(#board[hidden]) #side { max-width: 640px; margin: 0 auto; }
+#stage[hidden] { display: none; }
+main:has(#stage[hidden]) #side { max-width: 640px; margin: 0 auto; }
 #side input { background: #1b1f27; color: var(--text); border: 1px solid #39424f; border-radius: 6px; padding: 8px 10px; font: inherit; }
 #side input:focus { outline: 2px solid var(--accent); }
 .rooms { list-style: none; margin: 0 0 14px; padding: 0; }
@@ -15,3 +15,8 @@ main:has(#board[hidden]) #side { max-width: 640px; margin: 0 auto; }
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #7a2b2b; color: #fff; padding: 10px 16px;
   border-radius: 8px; z-index: 100; max-width: 90vw; box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
 .overlay .row { justify-content: center; margin: 0; }
+.seat .tag { font-size: .72rem; color: var(--muted); }
+.seat .host { color: var(--accent); }
+.form-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+.form-row select { background: #1b1f27; color: var(--text); border: 1px solid #39424f; border-radius: 6px; padding: 7px 8px; font: inherit; }
+.rooms li .meta { color: var(--muted); font-size: .85rem; }

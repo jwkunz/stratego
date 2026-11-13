@@ -1,23 +1,30 @@
 // Sessions, rooms and the WebSocket message protocol. Transport-agnostic: anything with the `ws` socket API works.
 //
 // Client -> server (all JSON, `t` is the message type):
-//   hello {name?, token?}   identify; send the token from an earlier welcome to resume a session
-//   rename {name}           change your display name (not while in a game)
-//   list                    ask for the list of open games
-//   create {size}           open a new game (size: 10 | 12 | 16 | 20)
-//   join {code}             join an open game
-//   leave                   leave the current game (forfeits it if one is in progress)
-//   lakes                   host only: re-roll the lakes of a large board
-//   setup {placements}      lock in your army: {squareIndex: rank}
-//   unready                 take back a locked-in setup
-//   move {from, to}         play a move (square indices; board is always in "red at the bottom" coordinates)
-//   resign                  concede the game in progress
-//   rematch                 ask for another game against the same opponent (sides swap)
+//   hello {name?, token?}     identify; send the token from an earlier welcome to resume a session
+//   rename {name}             change your display name (not while in a game)
+//   list                      ask for the list of open games
+//   create {mode, size, players, ai, level, teams}
+//                             open a new game. mode 'square' (default; size 10|12|16|20, always 2 players) or
+//                             'hex' (size 'small'|'medium'|'large', players 2-6). `ai` = how many of the other
+//                             seats are computer players (at `level`: easy|medium|hard), `teams` = a team label
+//                             ('A'|'B'|'C'|'') per seat (hex only)
+//   join {code}               take the first open seat of an open game
+//   seat {seat, type?, level?, team?}
+//                             host only, while waiting: make a seat 'ai' or 'open', set its difficulty or team
+//   fillAI {level?}           host only: every open seat becomes a computer player and the game moves on
+//   lakes                     host only: re-roll the lakes of a larger board
+//   leave                     leave the current game (you drop out of one in progress)
+//   setup {placements}        lock in your army: {cell: rank}
+//   unready                   take back a locked-in setup
+//   move {from, to}           play a move (cell indices of the shared, canonical board)
+//   resign                    drop out of the game in progress
+//   rematch                   ask for another game with the same people
 //
 // Server -> client:
-//   welcome {token, name}   your session token (keep it secret; it is how you resume)
-//   lobby {rooms: [{code, host, size}]}
-//   state {view, event}     your private view of your game; `event` describes the move that caused it (or null)
+//   welcome {token, name}     your session token (keep it secret; it is how you resume)
+//   lobby {rooms: [{code, host, mode, size, players, open, ai}]}
+//   state {view, event}       your private view of your game; `event` describes what just happened (or null)
 //   error {msg}
 import { randomBytes } from 'node:crypto';
 import { Room, GameError } from './room.js';
@@ -33,16 +40,20 @@ export const cleanName = (raw) => {
 export class Lobby {
   /**
    * @param {object} opts
-   * @param {number} opts.graceMs    how long a dropped player can come back to a game before it is forfeited
+   * @param {number} opts.graceMs    how long a dropped player can come back to a game before they drop out
    * @param {number} opts.waitingMs  how long an open game with no connected host is kept
    * @param {number} opts.idleMs     how long a session with no game and no connection is remembered
    * @param {number} opts.maxMsgsPerSec  flood limit per connection (a person never gets close to it)
+   * @param {number} opts.aiDelayMs  pause before a computer player moves (so people can follow the game)
+   * @param {object} opts.aiOptions  options passed to the AI (e.g. {timeMs} to shorten its thinking in tests)
    */
-  constructor({ graceMs = 120_000, waitingMs = 60_000, idleMs = 600_000, maxMsgsPerSec = 100, log = () => {} } = {}) {
+  constructor({ graceMs = 120_000, waitingMs = 60_000, idleMs = 600_000, maxMsgsPerSec = 100, aiDelayMs = 700, aiOptions = {}, log = () => {} } = {}) {
     this.maxMsgsPerSec = maxMsgsPerSec;
     this.graceMs = graceMs;
     this.waitingMs = waitingMs;
     this.idleMs = idleMs;
+    this.aiDelayMs = aiDelayMs;
+    this.aiOptions = aiOptions;
     this.log = log;
     this.sessions = new Map(); // token -> {token, name, ws, roomCode, dropTimer}
     this.rooms = new Map(); // code -> Room
@@ -138,7 +149,7 @@ export class Lobby {
   handle(s, msg) {
     switch (msg.t) {
       case 'list': return this.send(s, this.lobbyMessage());
-      case 'create': return this.create(s, msg.size);
+      case 'create': return this.create(s, msg);
       case 'join': return this.join(s, msg.code);
       case 'rename':
         if (this.roomOf(s)) throw new GameError('Finish or leave your game first');
@@ -148,17 +159,20 @@ export class Lobby {
     }
     const room = this.roomOf(s);
     if (!room) throw new GameError('You are not in a game');
+    let event = null;
     switch (msg.t) {
       case 'leave': return this.removeFromRoom(room, s, 'left'); // also refreshes everyone's lobby list
+      case 'seat': room.configureSeat(s.token, msg); this.broadcastLobby(); break;
+      case 'fillAI': room.fillWithAI(s.token, msg.level); this.broadcastLobby(); break;
       case 'lakes': room.rerollLakes(s.token); break;
       case 'setup': room.submitSetup(s.token, msg.placements); break;
       case 'unready': room.unready(s.token); break;
-      case 'resign': room.resign(s.token); break;
+      case 'resign': event = room.resign(s.token); break;
       case 'rematch': room.rematch(s.token); break;
-      case 'move': return this.sendState(room, room.move(s.token, msg.from, msg.to));
+      case 'move': event = room.move(s.token, msg.from, msg.to); break;
       default: throw new GameError('Unknown message');
     }
-    return this.sendState(room);
+    return this.changed(room, event);
   }
 
   newCode() {
@@ -169,14 +183,14 @@ export class Lobby {
     }
   }
 
-  create(s, size) {
+  create(s, options) {
     if (this.roomOf(s)) throw new GameError('You are already in a game');
-    const room = new Room(this.newCode(), Number(size));
+    const room = new Room(this.newCode(), options);
     room.addPlayer(s.token, s.name);
     this.rooms.set(room.code, room);
     s.roomCode = room.code;
-    this.log(`game ${room.code} opened by ${s.name} (${room.cfg.size}x${room.cfg.size})`);
-    this.sendState(room);
+    this.log(`game ${room.code} opened by ${s.name} (${room.mode} ${room.size}, ${room.seats.length} seats)`);
+    this.changed(room);
     this.broadcastLobby();
   }
 
@@ -187,33 +201,69 @@ export class Lobby {
     room.addPlayer(s.token, s.name);
     s.roomCode = room.code;
     this.log(`${s.name} joined game ${room.code}`);
-    this.sendState(room);
+    this.changed(room);
     this.broadcastLobby();
   }
 
   removeFromRoom(room, s, reason) {
-    const empty = room.leave(s.token, reason);
+    const { empty, event } = room.leave(s.token, reason);
     s.roomCode = null;
     clearTimeout(s.dropTimer);
-    if (empty) this.rooms.delete(room.code);
-    else this.sendState(room);
+    if (empty) this.deleteRoom(room);
+    else this.changed(room, event);
     this.broadcastLobby();
   }
 
+  deleteRoom(room) {
+    clearTimeout(room.aiTimer);
+    this.rooms.delete(room.code);
+  }
+
   // ---- outgoing -------------------------------------------------------------------------------
-  /** Sends every player in the room their own view (plus the masked event that caused the change, if any). */
+  /** Tells everyone in the room what changed and, if it is a computer player's turn, lets it think. */
+  changed(room, event = null) {
+    this.sendState(room, event);
+    this.driveAI(room);
+  }
+
+  /** Sends every person in the room their own view (plus the masked event that caused the change, if any). */
   sendState(room, event = null) {
-    for (const p of room.players) {
-      const s = this.sessions.get(p.token);
+    for (const seat of room.humans()) {
+      const s = this.sessions.get(seat.token);
       if (!s || s.roomCode !== room.code) continue;
-      this.send(s, { t: 'state', view: room.view(p.token), event: room.maskEvent(event, p.color) });
+      this.send(s, { t: 'state', view: room.view(seat.token), event: room.maskEvent(event, seat.token) });
     }
+  }
+
+  /** Plays computer seats, one move at a time, with a short pause so people can follow. */
+  driveAI(room) {
+    clearTimeout(room.aiTimer);
+    room.aiTimer = null;
+    if (!room.aiToMove()) return;
+    // once every person is out of the game the rest is only for show, so it goes faster
+    const watching = room.humans().some((h) => !h.left && room.state.alive[h.color]);
+    room.aiTimer = setTimeout(() => {
+      room.aiTimer = null;
+      if (!this.rooms.has(room.code) || !room.aiToMove()) return;
+      try {
+        this.changed(room, room.aiMove(this.aiOptions));
+      } catch (e) {
+        this.log('computer player failed', e);
+      }
+    }, watching ? this.aiDelayMs : Math.min(this.aiDelayMs, 250));
+    room.aiTimer.unref?.();
   }
 
   lobbyMessage() {
     const rooms = [...this.rooms.values()]
-      .filter((r) => r.phase === 'waiting' && r.players[0])
-      .map((r) => ({ code: r.code, host: r.players[0].name, size: r.cfg.size }));
+      .filter((r) => r.phase === 'waiting' && r.openSeats().length)
+      .map((r) => {
+        const host = r.humans().find((h) => r.isHost(h));
+        return {
+          code: r.code, host: host ? host.name : '', mode: r.mode, size: r.size, players: r.seats.length,
+          open: r.openSeats().length, ai: r.seats.filter((x) => x.type === 'ai').length,
+        };
+      });
     return { t: 'lobby', rooms };
   }
 
@@ -224,5 +274,6 @@ export class Lobby {
 
   close() {
     for (const s of this.sessions.values()) clearTimeout(s.dropTimer);
+    for (const r of this.rooms.values()) clearTimeout(r.aiTimer);
   }
 }

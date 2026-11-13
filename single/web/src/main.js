@@ -6,6 +6,7 @@ import { pickMove, DIFFICULTIES } from './ai.js';
 import { createEffects, reduceMotion } from './effects.js';
 import { scoreboardHTML } from './scoreboard.js';
 import { boardMarkup } from './boardview.js';
+import { createZoom } from './zoom.js';
 
 const $ = (id) => document.getElementById(id);
 const boardEl = $('board'), sideEl = $('side'), statusEl = $('status'), stageEl = $('stage'), wrapEl = $('boardwrap'), frameEl = $('frame'), overlayEl = $('overlayhost');
@@ -32,7 +33,7 @@ let cfg = makeConfig(10);
 let difficulty = 'medium';
 /** Hex settings: camp size, player count, and one entry per seat (seat 0 is you; the others are computers). */
 const hex = { size: 'medium', players: 3, seats: [{ team: '' }, { level: 'medium', team: '' }, { level: 'medium', team: '' }] };
-let zoom = 1;
+const zoomCtl = createZoom({ wrap: wrapEl, bar: $('zoombar'), apply: () => renderBoard() });
 let layout = null; // placement of cells from the last board render (used to aim effects)
 
 const TEAM_LABELS = ['A', 'B', 'C'];
@@ -113,14 +114,14 @@ function renderBoard() {
   stageEl.classList.toggle('hexmode', hexBoard);
   $('zoombar').hidden = !hexBoard;
   boardEl.classList.toggle('hex', hexBoard);
-  boardEl.classList.toggle('zoomed', hexBoard && zoom >= 2);
+  boardEl.classList.toggle('zoomed', hexBoard && zoomCtl.value >= 2);
   boardEl.classList.toggle('dense', !hexBoard && topo.n > 12);
   boardEl.classList.toggle('big', !hexBoard && topo.n > 10);
   if (hexBoard) {
     boardEl.style.gridTemplateColumns = boardEl.style.gridTemplateRows = '';
     wrapEl.style.setProperty('--aspect', view.aspect);
     boardEl.style.setProperty('--aspect', view.aspect);
-    boardEl.style.setProperty('--zoom', zoom);
+    boardEl.style.setProperty('--zoom', zoomCtl.value);
     stageEl.style.setProperty('--aspect', view.aspect);
   } else {
     boardEl.style.gridTemplateColumns = boardEl.style.gridTemplateRows = `repeat(${topo.n}, minmax(0, 1fr))`;
@@ -389,25 +390,6 @@ frameEl.addEventListener('dblclick', (e) => {
   render();
 });
 
-// ---- zoom (hexagon boards) --------------------------------------------------------------------------------------
-const ZOOMS = [1, 1.5, 2, 3, 4];
-function setZoom(next) {
-  const cx = (wrapEl.scrollLeft + wrapEl.clientWidth / 2) / (wrapEl.scrollWidth || 1);
-  const cy = (wrapEl.scrollTop + wrapEl.clientHeight / 2) / (wrapEl.scrollHeight || 1);
-  zoom = next;
-  renderBoard();
-  wrapEl.scrollLeft = cx * wrapEl.scrollWidth - wrapEl.clientWidth / 2;
-  wrapEl.scrollTop = cy * wrapEl.scrollHeight - wrapEl.clientHeight / 2;
-}
-$('zoombar').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  const at = ZOOMS.indexOf(zoom);
-  if (b.dataset.zoom === 'fit') setZoom(1);
-  else if (b.dataset.zoom === 'in') setZoom(ZOOMS[Math.min(ZOOMS.length - 1, at + 1)]);
-  else setZoom(ZOOMS[Math.max(0, at - 1)]);
-});
-
 // ---- setup panel -------------------------------------------------------------------------------------------------
 function resizeSeats() {
   while (hex.seats.length < hex.players) hex.seats.push({ level: 'medium', team: '' });
@@ -420,7 +402,7 @@ sideEl.addEventListener('click', (e) => {
   if (t.dataset.tab) { tab = t.dataset.tab; render(); return; }
   const clearPlacement = () => { ui.placed = {}; ui.tray = ui.pick = null; };
   if (t.dataset.mode) {
-    mode = t.dataset.mode; zoom = 1;
+    mode = t.dataset.mode; zoomCtl.reset();
     if (isHex()) newHexConfig(); else cfg = makeConfig(squareSize);
     clearPlacement();
   } else if (t.dataset.diff) {
@@ -430,9 +412,9 @@ sideEl.addEventListener('click', (e) => {
     cfg = makeConfig(squareSize);
     clearPlacement();
   } else if (t.dataset.hexsize) {
-    hex.size = t.dataset.hexsize; zoom = 1; newHexConfig(); clearPlacement();
+    hex.size = t.dataset.hexsize; zoomCtl.reset(); newHexConfig(); clearPlacement();
   } else if (t.dataset.hexplayers) {
-    hex.players = Number(t.dataset.hexplayers); resizeSeats(); zoom = 1; newHexConfig(); clearPlacement();
+    hex.players = Number(t.dataset.hexplayers); resizeSeats(); zoomCtl.reset(); newHexConfig(); clearPlacement();
   } else if (t.id === 'lakes') {
     if (isHex()) cfg = rerollHexLakes(cfg); else cfg = makeConfig(squareSize, randomLakes(squareSize));
     clearPlacement();
